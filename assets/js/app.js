@@ -144,6 +144,41 @@
     }).join('');
   }
 
+  function renderQuiz(module) {
+    if (!Array.isArray(module.quiz) || module.quiz.length === 0) return '';
+    const best = state.get().quiz[module.id];
+    const bestText = best ? `Terbaik: ${best.best}/${best.total}` : 'Belum ada skor';
+
+    const questions = module.quiz.map((item, index) => `
+      <div class="quiz-q" data-quiz-question="${index}">
+        <p><span class="q-num">${String(index + 1).padStart(2, '0')}</span>${inline(item.q)}</p>
+        <div class="quiz-options">
+          ${item.options.map((option, optionIndex) => `
+            <button class="quiz-option" type="button" data-quiz-option="${optionIndex}">
+              <span class="opt-letter">${String.fromCharCode(65 + optionIndex)}</span>
+              <span>${inline(option)}</span>
+            </button>`).join('')}
+        </div>
+        <div class="quiz-explain" hidden>${inline(item.explain)}</div>
+      </div>`).join('');
+
+    return `
+      <section class="prose-section" id="quiz">
+        <h2>Kuis</h2>
+        <div class="quiz" data-quiz-module="${escapeHtml(module.id)}">
+          <div class="quiz-head">
+            <h3>Cek pemahaman</h3>
+            <div class="quiz-meta">
+              <span class="quiz-score" data-quiz-score>0/${module.quiz.length}</span>
+              <span class="quiz-best">${bestText}</span>
+            </div>
+          </div>
+          <div class="quiz-list">${questions}</div>
+          <div class="quiz-done" hidden data-quiz-result></div>
+        </div>
+      </section>`;
+  }
+
   function renderLesson(module) {
     const meta = moduleIndex().find((item) => item.id === module.id);
     const ordered = [...moduleIndex()].sort((a, b) => a.order - b.order);
@@ -152,6 +187,7 @@
     const next = position >= 0 && position < ordered.length - 1 ? ordered[position + 1] : null;
     const done = state.isModuleComplete(module.id);
     const note = state.getNote(module.id);
+    const quiz = renderQuiz(module);
 
     const sections = module.sections.map((section, index) => `
       <section class="prose-section" id="section-${index + 1}">
@@ -215,6 +251,8 @@
               <div class="terms">${terms}</div>
             </section>
 
+            ${quiz}
+
             <section class="prose-section" id="lab">
               <h2>Lab lokal</h2>
               <div class="lab">
@@ -257,6 +295,7 @@
               <ol>${toc}</ol>
               <div class="toc-extra">
                 <a href="#terms">Istilah kunci</a>
+                ${module.quiz?.length ? '<a href="#quiz">Kuis</a>' : ''}
                 <a href="#lab">Lab lokal</a>
                 <a href="#notes">Catatan</a>
                 <a href="#resources">Sumber</a>
@@ -265,6 +304,74 @@
           </aside>
         </div>
       </article>`;
+  }
+
+  function answerQuiz(option) {
+    const question = option.closest('[data-quiz-question]');
+    const quiz = option.closest('[data-quiz-module]');
+    if (!question || !quiz || question.dataset.answered === '1') return;
+
+    const module = (window.CYBER_MODULES || {})[quiz.dataset.quizModule];
+    const item = module?.quiz?.[Number(question.dataset.quizQuestion)];
+    if (!item) return;
+
+    const chosen = Number(option.dataset.quizOption);
+    question.dataset.answered = '1';
+    question.dataset.correct = chosen === item.answer ? '1' : '0';
+
+    question.querySelectorAll('[data-quiz-option]').forEach((button) => {
+      button.disabled = true;
+      if (Number(button.dataset.quizOption) === item.answer) button.classList.add('correct');
+    });
+    if (chosen !== item.answer) option.classList.add('wrong');
+
+    const explanation = question.querySelector('.quiz-explain');
+    if (explanation) explanation.hidden = false;
+
+    updateQuiz(quiz, module);
+  }
+
+  function updateQuiz(quiz, module) {
+    const questions = [...quiz.querySelectorAll('[data-quiz-question]')];
+    const answered = questions.filter((question) => question.dataset.answered === '1').length;
+    const correct = questions.filter((question) => question.dataset.correct === '1').length;
+    const score = quiz.querySelector('[data-quiz-score]');
+    if (score) score.textContent = `${correct}/${questions.length}`;
+
+    if (answered !== questions.length) return;
+
+    const result = state.recordQuiz(module.id, correct, questions.length);
+    const best = quiz.querySelector('.quiz-best');
+    if (best) best.textContent = `Terbaik: ${result.best}/${result.total}`;
+
+    const box = quiz.querySelector('[data-quiz-result]');
+    if (box) {
+      box.hidden = false;
+      box.innerHTML = `Kuis selesai: <strong>${correct}/${questions.length}</strong>. Skor terbaik: <strong>${result.best}/${result.total}</strong>. <button class="btn" type="button" data-quiz-retry>Ulangi kuis</button>`;
+    }
+  }
+
+  function resetQuiz(quiz) {
+    const questions = [...quiz.querySelectorAll('[data-quiz-question]')];
+    questions.forEach((question) => {
+      delete question.dataset.answered;
+      delete question.dataset.correct;
+      question.querySelectorAll('[data-quiz-option]').forEach((button) => {
+        button.disabled = false;
+        button.classList.remove('correct', 'wrong');
+      });
+      const explanation = question.querySelector('.quiz-explain');
+      if (explanation) explanation.hidden = true;
+    });
+
+    const score = quiz.querySelector('[data-quiz-score]');
+    if (score) score.textContent = `0/${questions.length}`;
+
+    const box = quiz.querySelector('[data-quiz-result]');
+    if (box) {
+      box.hidden = true;
+      box.innerHTML = '';
+    }
   }
 
   function renderRoadmap() {
@@ -572,6 +679,16 @@
       button.textContent = 'Gagal';
     }
     window.setTimeout(() => { button.textContent = original; }, 1500);
+  });
+
+  view.addEventListener('click', (event) => {
+    const option = event.target.closest('[data-quiz-option]');
+    if (option) {
+      answerQuiz(option);
+      return;
+    }
+    const retry = event.target.closest('[data-quiz-retry]');
+    if (retry) resetQuiz(retry.closest('.quiz'));
   });
 
   let noteTimer = 0;
