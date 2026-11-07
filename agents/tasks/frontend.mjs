@@ -174,7 +174,7 @@ export default [
     title: 'Implement virtual terminal engine and shell tests',
     role: 'frontend',
     reviewers: ['security', 'tech-lead', 'qa'],
-    status: 'todo',
+    status: 'done',
     priority: 'P1',
     size: 'L',
     pr: '#11',

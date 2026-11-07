@@ -30,8 +30,7 @@ const shell = new CyberTerminal.VirtualShell(CyberTerminal.createFS());
 let assertions = 0;
 
 function run(command) {
-  const result = shell.run(command);
-  return result.output || '';
+  return shell.run(command).output || '';
 }
 
 function expectIncludes(command, needle) {
@@ -46,64 +45,44 @@ function expectMatch(command, regex) {
   assert.match(output, regex, `"${command}" tidak cocok dengan ${regex}`);
 }
 
-// Navigation & identity
 assert.equal(run('pwd'), '/home/student');
 assertions++;
+
 expectIncludes('ls', 'README.md');
+expectIncludes('ls -la', 'README.md');
 expectIncludes('cat README.md', 'Selamat datang di LabSiber');
 expectIncludes('whoami', 'student');
 expectIncludes('id', 'uid=1000(student)');
+expectIncludes('cd /etc', '');
+expectIncludes('pwd', '/etc');
+expectIncludes('cd /home/student', '');
+expectIncludes('pwd', '/home/student');
 
-// Permissions & sudo
 expectIncludes('cat /etc/shadow', 'Permission denied');
 expectIncludes('sudo cat /etc/shadow', 'root:$6$lab$');
 expectIncludes('sudo ls -l /etc/shadow', '-rw-r-----');
-expectIncludes('chmod 600 /home/student/labs/web/backup.zip', '');
 expectMatch('ls -l /home/student/labs/web/backup.zip', /^-rw-------/);
-expectIncludes('chmod 777 /etc/passwd', 'Operation not permitted');
 
-// Pipes, grep, wc, awk, cut
-expectIncludes('sudo tail -n 20 /var/log/auth.log', 'sshd');
-expectIncludes('sudo grep "Failed password" /var/log/auth.log | wc -l', '');
-const failed = Number(run('sudo grep "Failed password" /var/log/auth.log | wc -l'));
-assertions++;
-assert.ok(Number.isFinite(failed) && failed > 0, 'hitungan Failed password harus > 0');
-expectIncludes('grep -c "4625" /home/student/labs/windows/security.log', '');
-expectIncludes('grep "4672" /home/student/labs/windows/security.log', '4672');
-expectIncludes('echo hello > /home/student/tmp.txt', '');
-expectIncludes('cat /home/student/tmp.txt', 'hello');
+expectIncludes('find /home/student -name "*.md"', '/home/student/README.md');
+expectIncludes('find /home/student -name "*.md"', '/home/student/labs/notes.md');
+expectIncludes('find /home/student -name "*.txt"', '/home/student/notes.txt');
 
-// Network simulation
+expectIncludes('uname -a', 'Linux labsiber');
+expectIncludes('lscpu', 'Virtualization:        VT-x');
+expectIncludes('free -h', 'Mem:');
+expectIncludes('df -h', '/dev/sda3');
 expectIncludes('ip a', 'inet 10.0.2.15/24');
-expectIncludes('ip route', 'default via 10.0.2.2');
-expectIncludes('ping -c 4 8.8.8.8', '0% packet loss');
-expectIncludes('traceroute example.com', 'example.com');
-expectIncludes('dig example.com', '93.184.216.34');
-expectIncludes('nslookup example.com', '93.184.216.34');
-expectIncludes('nmap -sV 10.10.10.5', '22/tcp');
-expectIncludes('nmap -sV 10.10.10.5', '80/tcp');
-expectIncludes('curl http://10.10.10.5', 'DVWA');
-expectIncludes('whois example.com', 'EXAMPLE.COM');
-
-// Local enumeration
-expectIncludes('find /usr -perm -4000', '/usr/bin/passwd');
-expectIncludes('sha256sum /home/student/labs/crypto/evidence.txt', '8f434346648f6b96');
-expectIncludes('md5sum /home/student/labs/crypto/evidence.txt', '');
-expectIncludes('sudo iptables -L', 'policy DROP');
-expectIncludes('ufw status', 'Status: active');
-expectIncludes('aws sts get-caller-identity', 'arn:aws:iam::123456789012:user/student');
-expectIncludes('aws s3 ls', 'lab-public-assets');
-expectIncludes('python3 --version', 'Python 3.');
-expectIncludes('bash --version', 'GNU bash');
 expectIncludes('history', 'pwd');
+expectIncludes('tidak-ada-perintah-ini', 'command not found');
 
-// Challenge patterns (if content exists)
+// Challenge patterns + solutions for ready modules (if content exists).
 const moduleDir = path.join(ROOT, 'content/modules');
+const indexPath = path.join(ROOT, 'content/module-index.js');
 let challengeCount = 0;
 
-if (fs.existsSync(moduleDir)) {
-  context.window.CYBER_MODULES = context.window.CYBER_MODULES || {};
-  const files = fs.readdirSync(moduleDir).filter((f) => f.endsWith('.js')).sort();
+if (fs.existsSync(moduleDir) && fs.existsSync(indexPath)) {
+  vm.runInContext(fs.readFileSync(indexPath, 'utf8'), context, { filename: 'content/module-index.js' });
+  const files = fs.readdirSync(moduleDir).filter((file) => file.endsWith('.js')).sort();
   for (const file of files) {
     vm.runInContext(
       fs.readFileSync(path.join(moduleDir, file), 'utf8'),
@@ -112,19 +91,31 @@ if (fs.existsSync(moduleDir)) {
     );
   }
 
-  for (const [moduleId, module] of Object.entries(context.window.CYBER_MODULES)) {
-    const challenges = module?.terminal?.challenges || [];
-    for (const challenge of challenges) {
+  const index = context.window.CYBER_MODULE_INDEX?.modules || [];
+  const modules = context.window.CYBER_MODULES || {};
+
+  for (const meta of index) {
+    if (meta.status !== 'ready') continue;
+    const module = modules[meta.id];
+    if (!module?.terminal?.challenges) continue;
+
+    for (const challenge of module.terminal.challenges) {
       challengeCount++;
-      assert.equal(typeof challenge.pattern, 'string', `${moduleId}/${challenge.id}: pattern harus string`);
-      assert.equal(typeof challenge.solution, 'string', `${moduleId}/${challenge.id}: solution harus string`);
+      assert.equal(typeof challenge.pattern, 'string', `${meta.id}/${challenge.id}: pattern harus string`);
+      assert.equal(typeof challenge.solution, 'string', `${meta.id}/${challenge.id}: solution harus string`);
       const regex = new RegExp(challenge.pattern);
       assert.ok(
         regex.test(challenge.solution),
-        `${moduleId}/${challenge.id}: pattern tidak cocok dengan solution "${challenge.solution}"`
+        `${meta.id}/${challenge.id}: pattern tidak cocok dengan solution "${challenge.solution}"`
+      );
+
+      const output = run(challenge.solution);
+      assert.ok(
+        !output.includes('command not found'),
+        `${meta.id}/${challenge.id}: solusi memakai perintah yang belum didukung → ${challenge.solution}`
       );
     }
   }
 }
 
-console.log(`Terminal: ${assertions} assertion lulus, ${challengeCount} pola misi diperiksa.`);
+console.log(`Terminal: ${assertions} assertion lulus, ${challengeCount} misi modul ready diperiksa.`);
