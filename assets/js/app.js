@@ -160,6 +160,48 @@
       <div class="roadmap-list">${sections}</div>`;
   }
 
+  function renderCatalog() {
+    const modules = moduleIndex();
+    if (!modules.length) {
+      return placeholder(
+        'Materi',
+        'Katalog modul',
+        'Data modul belum tersedia.',
+        'Katalog belum dimuat'
+      );
+    }
+
+    const ready = modules.filter((module) => module.status === 'ready').length;
+    const cards = [...modules]
+      .sort((a, b) => a.order - b.order)
+      .map((module) => {
+        const isReady = module.status === 'ready';
+        return `
+          <article class="module-card${isReady ? ' ready' : ''}">
+            <div class="module-card-top">
+              <span class="module-num">Modul ${String(module.order).padStart(2, '0')}</span>
+              <span class="badge ${isReady ? 'badge-green' : 'badge-dim'}">${isReady ? 'siap' : 'segera hadir'}</span>
+            </div>
+            <h2>${escapeHtml(module.title)}</h2>
+            <p>${escapeHtml(module.summary)}</p>
+            <div class="module-meta">
+              <span>${escapeHtml(module.track)}</span>
+              <span>${escapeHtml(module.level)}</span>
+              <span>${module.duration} menit</span>
+            </div>
+            ${isReady ? `<a class="module-link" href="#/module/${encodeURIComponent(module.id)}">Buka modul</a>` : ''}
+          </article>`;
+      }).join('');
+
+    return `
+      ${pageHead(
+        'Materi',
+        'Katalog modul',
+        `${modules.length} modul bertahap. ${ready} siap dibaca, ${modules.length - ready} segera hadir.`
+      )}
+      <div class="module-grid">${cards}</div>`;
+  }
+
   const pages = {
     dashboard() {
       return {
@@ -188,12 +230,7 @@
     modules() {
       return {
         title: 'Modul materi',
-        html: placeholder(
-          'Materi',
-          'Katalog modul',
-          '17 modul akan tampil di sini setelah module index dan lesson engine tersedia.',
-          'Katalog belum dimuat'
-        )
+        html: renderCatalog()
       };
     },
 
