@@ -179,6 +179,31 @@
       </section>`;
   }
 
+  function renderTerminal(module) {
+    const terminal = module.terminal;
+    if (!terminal || !Array.isArray(terminal.challenges) || terminal.challenges.length === 0) return '';
+
+    const challenges = terminal.challenges.map((challenge) => {
+      const done = state.isTerminalDone(module.id, challenge.id);
+      return `
+        <li class="challenge${done ? ' done' : ''}" data-challenge="${escapeHtml(challenge.id)}">
+          <span class="c-mark" aria-hidden="true">✓</span>
+          <div class="c-body">
+            <div class="c-task">${inline(challenge.task)}</div>
+            <div class="c-hint">Hint: <code>${escapeHtml(challenge.hint)}</code></div>
+          </div>
+        </li>`;
+    }).join('');
+
+    return `
+      <section class="prose-section" id="terminal">
+        <h2>Terminal lab</h2>
+        <p>${inline(terminal.intro || '')}</p>
+        <div data-terminal="${escapeHtml(module.id)}"></div>
+        <ul class="challenge-list">${challenges}</ul>
+      </section>`;
+  }
+
   function renderLesson(module) {
     const meta = moduleIndex().find((item) => item.id === module.id);
     const ordered = [...moduleIndex()].sort((a, b) => a.order - b.order);
@@ -188,6 +213,7 @@
     const done = state.isModuleComplete(module.id);
     const note = state.getNote(module.id);
     const quiz = renderQuiz(module);
+    const terminalSection = renderTerminal(module);
 
     const sections = module.sections.map((section, index) => `
       <section class="prose-section" id="section-${index + 1}">
@@ -253,6 +279,8 @@
 
             ${quiz}
 
+            ${terminalSection}
+
             <section class="prose-section" id="lab">
               <h2>Lab lokal</h2>
               <div class="lab">
@@ -296,6 +324,7 @@
               <div class="toc-extra">
                 <a href="#terms">Istilah kunci</a>
                 ${module.quiz?.length ? '<a href="#quiz">Kuis</a>' : ''}
+                ${module.terminal?.challenges?.length ? '<a href="#terminal">Terminal</a>' : ''}
                 <a href="#lab">Lab lokal</a>
                 <a href="#notes">Catatan</a>
                 <a href="#resources">Sumber</a>
@@ -686,11 +715,31 @@
     });
   }
 
+  function mountLessonTerminal() {
+    const container = view.querySelector('[data-terminal]');
+    if (!container || !window.CyberTerminal) return;
+    const moduleId = container.dataset.terminal;
+    const module = (window.CYBER_MODULES || {})[moduleId];
+    if (!module?.terminal?.challenges) return;
+
+    window.CyberTerminal.mount(container, {
+      title: 'student@labsiber: ~',
+      challenges: module.terminal.challenges,
+      doneIds: state.get().terminal[moduleId] || [],
+      onChallenge: (id) => {
+        state.markTerminalDone(moduleId, id);
+        const item = view.querySelector(`[data-challenge="${id}"]`);
+        if (item) item.classList.add('done');
+      }
+    });
+  }
+
   function setPage(page, route) {
     view.innerHTML = page.html;
     document.title = `${page.title} — LabSiber`;
     updateNav(route);
     setSidebar(false);
+    mountLessonTerminal();
     view.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }

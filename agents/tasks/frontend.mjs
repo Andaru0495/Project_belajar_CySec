@@ -215,7 +215,7 @@ export default [
     title: 'Integrate terminal UI, challenges, and lesson missions',
     role: 'frontend',
     reviewers: ['qa', 'accessibility', 'content'],
-    status: 'todo',
+    status: 'done',
     priority: 'P1',
     size: 'M',
     pr: '#11',
