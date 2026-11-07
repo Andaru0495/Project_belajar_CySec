@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LabSiber — Belajar Cyber Security dari Nol</title>
+  <meta name="description" content="Lab belajar cyber security berbahasa Indonesia: roadmap, materi, kuis, simulator terminal, dan panduan lab lokal.">
+  <meta name="theme-color" content="#070b12">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#view">Lewati ke konten utama</a>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button class="icon-btn menu-btn" data-action="toggle-sidebar" aria-label="Buka navigasi" aria-expanded="false" aria-controls="sidebar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+
+        <a class="brand" href="#/" aria-label="LabSiber, ke dashboard">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M16 3.5 27 8v8.2c0 6.1-4.4 10.7-11 12.3-6.6-1.6-11-6.2-11-12.3V8L16 3.5Z"/><path d="m11 16 3.4 3.4L21.5 12"/></svg>
+          </span>
+          <span class="brand-text">
+            <strong>LabSiber</strong>
+            <small>belajar dari nol</small>
+          </span>
+        </a>
+
+        <div class="topbar-spacer"></div>
+
+        <button class="icon-btn" data-action="toggle-theme" aria-label="Ganti tema terang atau gelap" title="Ganti tema">
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar" id="sidebar" aria-label="Navigasi utama">
+        <nav class="nav">
+          <p class="nav-label">Belajar</p>
+          <a href="#/" data-nav="dashboard">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="#/roadmap" data-nav="roadmap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v5a4 4 0 0 0 4 4h6a4 4 0 0 1 4 4v3"/><circle cx="5" cy="4" r="2"/><circle cx="19" cy="20" r="2"/></svg>
+            <span>Roadmap</span>
+          </a>
+          <a href="#/modules" data-nav="modules">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+            <span>Modul materi</span>
+          </a>
+          <a href="#/terminal" data-nav="terminal">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg>
+            <span>Terminal lab</span>
+          </a>
+
+          <p class="nav-label">Referensi</p>
+          <a href="#/glossary" data-nav="glossary">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M10 8h5M10 12h7M10 16h4"/></svg>
+            <span>Glosarium</span>
+          </a>
+          <a href="#/progress" data-nav="progress">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15v-4M12 15V8M17 15v-6"/></svg>
+            <span>Progres & catatan</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="sidebar-scrim" data-action="close-sidebar" aria-hidden="true"></div>
+
+      <main id="view" class="view" tabindex="-1">
+        <section class="page-head">
+          <span class="eyebrow">Roadmap.sh → lab pribadi</span>
+          <h1 class="page-title">Belajar cyber security dari nol, dengan praktik.</h1>
+          <p class="page-lede">Roadmap, materi, kuis, simulator terminal, dan lab lokal dalam satu tempat. Situs statis, gratis, dan privat.</p>
+        </section>
+        <div class="empty">
+          <h2>Shell dan navigasi siap</h2>
+          <p>Router, tema, dan halaman dinamis masuk lewat PR berikutnya supaya perubahan tetap kecil dan mudah direview.</p>
+          <p><a href="#/roadmap">Roadmap</a> · <a href="#/modules">Modul</a> · <a href="#/terminal">Terminal</a></p>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
