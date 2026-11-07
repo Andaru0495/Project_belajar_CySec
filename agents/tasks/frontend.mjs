@@ -134,7 +134,7 @@ export default [
     title: 'Implement quiz engine with explanations and best score',
     role: 'frontend',
     reviewers: ['content', 'qa', 'accessibility'],
-    status: 'in-progress',
+    status: 'done',
     priority: 'P0',
     size: 'M',
     pr: '#4',
@@ -250,42 +250,77 @@ export default [
   },
   {
     id: 'T-018',
-    title: 'Build progress page, export/import, glossary, and global search',
+    title: 'Build progress page and export/import',
+    role: 'frontend',
+    reviewers: ['data-platform', 'accessibility', 'qa'],
+    status: 'in-progress',
+    priority: 'P1',
+    size: 'M',
+    pr: '#12',
+    dependsOn: ['T-008'],
+    files: [
+      'assets/js/app.js',
+      'assets/css/style.css',
+      'docs/TSD.md'
+    ],
+    context: 'Pengguna perlu melihat capaian dan memindahkan progres antar-browser/perangkat.',
+    deliverables: [
+      'Halaman progres dengan statistik',
+      'Tabel status semua modul',
+      'Ekspor/impor/reset dengan konfirmasi'
+    ],
+    acceptance: [
+      'Statistik modul/kuis/terminal/streak akurat.',
+      'Export JSON dan import memvalidasi versi/bentuk.',
+      'Reset berkonfirmasi dan tidak crash.',
+      'Tabel menampilkan modul ready/planned dengan benar.'
+    ],
+    verification: [
+      'Export → reset → import',
+      'Import file rusak → error jelas',
+      'Uji 360px dan keyboard'
+    ],
+    outOfScope: ['Glosarium', 'Pencarian global', 'Sinkronisasi server'],
+    handoff: [
+      'Format ekspor didokumentasikan.',
+      'Serahkan ke QA untuk uji data edge case.'
+    ]
+  },
+  {
+    id: 'T-025',
+    title: 'Build glossary and global search',
     role: 'frontend',
     reviewers: ['data-platform', 'accessibility', 'qa'],
     status: 'todo',
     priority: 'P1',
     size: 'M',
     pr: '#12',
-    dependsOn: ['T-008', 'T-017'],
+    dependsOn: ['T-018', 'T-017'],
     files: [
       'assets/js/app.js',
       'assets/css/style.css',
       'docs/TSD.md'
     ],
-    context: 'Pengguna perlu melihat capaian, memindahkan progres, dan menemukan istilah/materi dengan cepat.',
+    context: 'Setelah konten bertambah, pengguna perlu menemukan istilah dan topik dengan cepat.',
     deliverables: [
-      'Halaman progres dengan statistik',
-      'Ekspor/impor/reset dengan konfirmasi',
       'Glosarium agregat dari semua modul',
-      'Pencarian Ctrl+K lintas modul/topik/istilah'
+      'Pencarian Ctrl+K lintas modul/topik/istilah',
+      'Navigasi keyboard dan empty state'
     ],
     acceptance: [
-      'Statistik modul/kuis/terminal/streak akurat.',
-      'Export JSON dan import memvalidasi versi/bentuk.',
-      'Reset berkonfirmasi dan tidak crash.',
-      'Search keyboard-navigable dan empty state jelas.'
+      'Semua istilah modul tampil dan tertaut ke modul asal.',
+      'Pencarian menemukan modul, node roadmap, dan istilah.',
+      'Hasil dapat dipilih dengan keyboard.',
+      'Empty state jelas dan tidak ada hasil rusak.'
     ],
     verification: [
-      'Export → reset → import',
-      'Import file rusak → error jelas',
       'Cari MFA/subnet/phishing',
-      'Uji keyboard dan 360px'
+      'Uji panah/Enter/Esc',
+      'Uji 360px'
     ],
-    outOfScope: ['Sinkronisasi server', 'Leaderboard', 'Analytics'],
+    outOfScope: ['Fuzzy search index', 'Sinkronisasi server', 'Analytics'],
     handoff: [
-      'Format ekspor didokumentasikan.',
-      'Serahkan ke QA untuk uji data edge case.'
+      'Serahkan ke content untuk cek istilah dan QA untuk keyboard.'
     ]
   },
   {
