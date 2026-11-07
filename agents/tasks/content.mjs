@@ -7,7 +7,7 @@ export default [
     title: 'Write foundation and hardware modules',
     role: 'content',
     reviewers: ['data-platform', 'qa', 'security'],
-    status: 'todo',
+    status: 'in-progress',
     priority: 'P0',
     size: 'L',
     pr: '#4',

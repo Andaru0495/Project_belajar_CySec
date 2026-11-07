@@ -7,7 +7,7 @@ export default [
     title: 'Add CI validation, secret scan, and owner-only auto-merge',
     role: 'devops',
     reviewers: ['security', 'tech-lead'],
-    status: 'in-progress',
+    status: 'done',
     priority: 'P0',
     size: 'M',
     pr: '#1b',

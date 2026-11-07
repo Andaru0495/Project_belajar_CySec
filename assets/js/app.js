@@ -1,32 +1,10 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'labsiber.v1';
   const view = document.getElementById('view');
   const menuBtn = document.querySelector('.menu-btn');
   const sidebar = document.getElementById('sidebar');
-
-  const state = loadState();
-
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { theme: null };
-      const parsed = JSON.parse(raw);
-      const theme = parsed && (parsed.theme === 'light' || parsed.theme === 'dark') ? parsed.theme : null;
-      return { theme };
-    } catch {
-      return { theme: null };
-    }
-  }
-
-  function saveState() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // Storage can be unavailable; the app still works for this session.
-    }
-  }
+  const state = window.CyberState;
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, (char) => ({
@@ -47,13 +25,12 @@
   }
 
   function applyTheme(preference) {
-    state.theme = preference;
+    state.setTheme(preference);
     document.documentElement.dataset.theme = resolveTheme(preference);
   }
 
   function toggleTheme() {
-    applyTheme(resolveTheme(state.theme) === 'dark' ? 'light' : 'dark');
-    saveState();
+    applyTheme(resolveTheme(state.get().theme) === 'dark' ? 'light' : 'dark');
   }
 
   function setSidebar(open) {
@@ -112,16 +89,24 @@
 
     const modules = Object.fromEntries(moduleIndex().map((module) => [module.id, module]));
     const total = data.sections.reduce((sum, section) => sum + section.nodes.length, 0);
+    const isDone = (node) => Boolean(
+      (node.module && state.isModuleComplete(node.module)) || state.isRoadmapDone(node.id)
+    );
+    const doneCount = data.sections.reduce(
+      (sum, section) => sum + section.nodes.filter(isDone).length,
+      0
+    );
 
     const sections = data.sections.map((section, index) => {
       const nodes = section.nodes.map((node) => {
         const module = node.module ? modules[node.module] : null;
+        const done = isDone(node);
         const action = module && module.status === 'ready'
           ? `<a class="node-link" href="#/module/${encodeURIComponent(module.id)}">Buka modul</a>`
           : `<span class="badge badge-dim">${module ? 'modul segera hadir' : 'belum ada modul'}</span>`;
 
         return `
-          <li class="node">
+          <li class="node${done ? ' done' : ''}">
             <span class="node-check" aria-hidden="true"></span>
             <div class="node-main">
               <div class="node-title">${escapeHtml(node.title)}</div>
@@ -154,8 +139,8 @@
       <div class="roadmap-overview">
         <div class="roadmap-stat"><strong>${total}</strong><span>topik</span></div>
         <div class="roadmap-stat"><strong>${data.sections.length}</strong><span>bagian</span></div>
-        <div class="roadmap-stat"><strong>0</strong><span>selesai</span></div>
-        <p class="tiny muted">Status selesai aktif setelah modul dan progress state tersedia.</p>
+        <div class="roadmap-stat"><strong>${doneCount}</strong><span>selesai</span></div>
+        <p class="tiny muted">Status selesai mengikuti modul yang selesai atau node yang ditandai manual.</p>
       </div>
       <div class="roadmap-list">${sections}</div>`;
   }
@@ -176,11 +161,15 @@
       .sort((a, b) => a.order - b.order)
       .map((module) => {
         const isReady = module.status === 'ready';
+        const completed = state.isModuleComplete(module.id);
+        const badge = completed ? 'selesai' : isReady ? 'siap' : 'segera hadir';
+        const badgeClass = completed || isReady ? 'badge-green' : 'badge-dim';
+        const cardClass = completed ? ' done' : isReady ? ' ready' : '';
         return `
-          <article class="module-card${isReady ? ' ready' : ''}">
+          <article class="module-card${cardClass}">
             <div class="module-card-top">
               <span class="module-num">Modul ${String(module.order).padStart(2, '0')}</span>
-              <span class="badge ${isReady ? 'badge-green' : 'badge-dim'}">${isReady ? 'siap' : 'segera hadir'}</span>
+              <span class="badge ${badgeClass}">${badge}</span>
             </div>
             <h2>${escapeHtml(module.title)}</h2>
             <p>${escapeHtml(module.summary)}</p>
@@ -341,11 +330,11 @@
   });
 
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
-    if (!state.theme) applyTheme(null);
+    if (!state.get().theme) applyTheme(null);
   });
 
   window.addEventListener('hashchange', render);
 
-  applyTheme(state.theme);
+  applyTheme(state.get().theme);
   render();
 })();
