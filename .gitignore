@@ -1,0 +1,16 @@
+# Local tooling & session files
+.commandcode/
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+
+# Source reference (roadmap PDF is not redistributed)
+cyber-security.pdf
+
+# Build / test / environment artifacts
+dist/
+coverage/
+.env
+.env.*
+*.local
