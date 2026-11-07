@@ -91,7 +91,7 @@ export default [
     title: 'Render lesson content, TOC, terms, and notes',
     role: 'frontend',
     reviewers: ['content', 'accessibility', 'qa'],
-    status: 'todo',
+    status: 'in-progress',
     priority: 'P0',
     size: 'L',
     pr: '#4',

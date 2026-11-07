@@ -7,11 +7,11 @@ export default [
     title: 'Write foundation and hardware modules',
     role: 'content',
     reviewers: ['data-platform', 'qa', 'security'],
-    status: 'in-progress',
+    status: 'done',
     priority: 'P0',
     size: 'L',
     pr: '#4',
-    dependsOn: ['T-004', 'T-006', 'T-007'],
+    dependsOn: ['T-004'],
     files: [
       'content/modules/01-fondasi.js',
       'content/module-index.js'

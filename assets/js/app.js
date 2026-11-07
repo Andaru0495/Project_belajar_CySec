@@ -76,6 +76,197 @@
     return index && Array.isArray(index.modules) ? index.modules : [];
   }
 
+  const modulePromises = new Map();
+
+  function loadScript(src) {
+    if (!modulePromises.has(src)) {
+      modulePromises.set(src, new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Gagal memuat ${src}`));
+        document.head.appendChild(script);
+      }));
+    }
+    return modulePromises.get(src);
+  }
+
+  async function ensureModule(id) {
+    const meta = moduleIndex().find((module) => module.id === id);
+    if (!meta || meta.status !== 'ready') return null;
+    await loadScript(meta.file);
+    return (window.CYBER_MODULES || {})[id] || null;
+  }
+
+  function inline(text) {
+    return escapeHtml(text)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  }
+
+  function codeBlock(block) {
+    const source = block.code.code || '';
+    const label = block.code.label || block.code.lang || 'shell';
+    return `
+      <div class="code-block">
+        <div class="code-head">
+          <span>${escapeHtml(label)}</span>
+          <button class="copy-btn" type="button" data-copy="${encodeURIComponent(source)}">Salin</button>
+        </div>
+        <pre><code>${escapeHtml(source)}</code></pre>
+      </div>`;
+  }
+
+  function renderBlocks(blocks) {
+    return blocks.map((block) => {
+      if (typeof block === 'string') return `<p>${inline(block)}</p>`;
+      if (block.sub) return `<h3>${inline(block.sub)}</h3>`;
+      if (block.list) return `<ul>${block.list.map((item) => `<li>${inline(item)}</li>`).join('')}</ul>`;
+      if (block.olist) return `<ol>${block.olist.map((item) => `<li>${inline(item)}</li>`).join('')}</ol>`;
+      if (block.code) return codeBlock(block);
+      if (block.table) {
+        const head = block.table.head.map((cell) => `<th>${inline(cell)}</th>`).join('');
+        const rows = block.table.rows
+          .map((row) => `<tr>${row.map((cell) => `<td>${inline(cell)}</td>`).join('')}</tr>`)
+          .join('');
+        return `<div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+      if (block.note) return `<div class="callout note"><span>${inline(block.note)}</span></div>`;
+      if (block.tip) return `<div class="callout tip"><span>${inline(block.tip)}</span></div>`;
+      if (block.warn) return `<div class="callout warn"><span>${inline(block.warn)}</span></div>`;
+      if (block.danger) return `<div class="callout danger"><span>${inline(block.danger)}</span></div>`;
+      if (block.quote) return `<blockquote>${inline(block.quote)}</blockquote>`;
+      if (block.hr) return '<hr>';
+      return '';
+    }).join('');
+  }
+
+  function renderLesson(module) {
+    const meta = moduleIndex().find((item) => item.id === module.id);
+    const ordered = [...moduleIndex()].sort((a, b) => a.order - b.order);
+    const position = ordered.findIndex((item) => item.id === module.id);
+    const previous = position > 0 ? ordered[position - 1] : null;
+    const next = position >= 0 && position < ordered.length - 1 ? ordered[position + 1] : null;
+    const done = state.isModuleComplete(module.id);
+    const note = state.getNote(module.id);
+
+    const sections = module.sections.map((section, index) => `
+      <section class="prose-section" id="section-${index + 1}">
+        <h2><span class="h-num">${String(index + 1).padStart(2, '0')}</span>${escapeHtml(section.title)}</h2>
+        ${renderBlocks(section.blocks)}
+      </section>`).join('');
+
+    const toc = module.sections
+      .map((section, index) => `<li><a href="#section-${index + 1}">${escapeHtml(section.title)}</a></li>`)
+      .join('');
+
+    const terms = module.terms.map((term) => `
+      <details>
+        <summary>${escapeHtml(term.term)}</summary>
+        <div class="term-body">${inline(term.def)}</div>
+      </details>`).join('');
+
+    const labSteps = module.lab.steps.map((step, index) => {
+      const text = typeof step === 'string' ? step : step.text;
+      const code = typeof step === 'string' ? '' : step.code;
+      return `
+        <div class="lab-step">
+          <span class="s-num">${index + 1}</span>
+          <div class="s-body">
+            <p>${inline(text)}</p>
+            ${code ? codeBlock({ code: { code, label: 'bash' } }) : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <article class="lesson">
+        <header class="lesson-hero">
+          <span class="eyebrow">${escapeHtml(module.track)}</span>
+          <h1>${escapeHtml(module.title)}</h1>
+          <p class="lede">${escapeHtml(module.summary)}</p>
+          <div class="lesson-meta">
+            <span class="badge">${escapeHtml(module.level)}</span>
+            <span class="badge">${module.duration} menit</span>
+            <span class="badge">${module.sections.length} bagian</span>
+            ${meta?.status === 'ready' ? '<span class="badge badge-green">siap</span>' : ''}
+          </div>
+          <div class="lesson-actions">
+            <button class="btn${done ? ' btn-primary' : ''}" type="button" data-action="toggle-complete" data-module="${escapeHtml(module.id)}">
+              ${done ? 'Selesai ✓' : 'Tandai selesai'}
+            </button>
+          </div>
+        </header>
+
+        <section class="objectives">
+          <h2>Tujuan pembelajaran</h2>
+          <ul>${module.objectives.map((item) => `<li>${inline(item)}</li>`).join('')}</ul>
+        </section>
+
+        <div class="lesson-grid">
+          <div class="lesson-body">
+            ${sections}
+
+            <section class="prose-section" id="terms">
+              <h2>Istilah kunci</h2>
+              <div class="terms">${terms}</div>
+            </section>
+
+            <section class="prose-section" id="lab">
+              <h2>Lab lokal</h2>
+              <div class="lab">
+                <div class="lab-head">
+                  <h3>${escapeHtml(module.lab.title)}</h3>
+                  <p>${inline(module.lab.goal)}</p>
+                </div>
+                <div class="lab-body">
+                  <div class="callout danger"><span>${inline(module.lab.safety)}</span></div>
+                  ${labSteps}
+                  ${module.lab.challenge ? `<div class="callout tip"><span>${inline(module.lab.challenge)}</span></div>` : ''}
+                </div>
+              </div>
+            </section>
+
+            <section class="prose-section" id="notes">
+              <h2>Catatanmu</h2>
+              <div class="notes-box">
+                <textarea data-note="${escapeHtml(module.id)}" placeholder="Tulis catatan, pertanyaan, atau temuan lab…">${escapeHtml(note)}</textarea>
+                <p class="notes-status" data-note-status>${note ? 'Tersimpan' : 'Autosave saat kamu mengetik'}</p>
+              </div>
+            </section>
+
+            <section class="prose-section" id="resources">
+              <h2>Sumber belajar</h2>
+              <ul class="resource-list">
+                ${module.resources.map((resource) => `<li><a href="${escapeHtml(resource.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resource.label)}</a></li>`).join('')}
+              </ul>
+            </section>
+
+            <nav class="prev-next" aria-label="Navigasi modul">
+              ${previous ? `<a href="#/module/${encodeURIComponent(previous.id)}"><span class="pn-label">Sebelumnya</span><span class="pn-title">${escapeHtml(previous.title)}</span></a>` : '<span></span>'}
+              ${next ? `<a class="next" href="#/module/${encodeURIComponent(next.id)}"><span class="pn-label">Berikutnya</span><span class="pn-title">${escapeHtml(next.title)}</span></a>` : '<span></span>'}
+            </nav>
+          </div>
+
+          <aside class="lesson-side">
+            <nav class="toc" aria-label="Daftar isi">
+              <h2>Isi modul</h2>
+              <ol>${toc}</ol>
+              <div class="toc-extra">
+                <a href="#terms">Istilah kunci</a>
+                <a href="#lab">Lab lokal</a>
+                <a href="#notes">Catatan</a>
+                <a href="#resources">Sumber</a>
+              </div>
+            </nav>
+          </aside>
+        </div>
+      </article>`;
+  }
+
   function renderRoadmap() {
     const data = roadmapData();
     if (!data) {
@@ -223,19 +414,6 @@
       };
     },
 
-    module(route) {
-      const id = route.id || 'tidak diketahui';
-      return {
-        title: `Modul ${id}`,
-        html: `
-          ${pageHead('Materi', 'Modul belum tersedia', 'Konten modul akan dimuat dari registry pada PR #4.')}
-          <div class="empty">
-            <h2>Konten belum di-commit</h2>
-            <p>ID modul: <code>${escapeHtml(id)}</code></p>
-          </div>`
-      };
-    },
-
     terminal() {
       return {
         title: 'Terminal lab',
@@ -285,21 +463,74 @@
     }
   };
 
-  function render() {
-    const route = parseRoute();
-    const page = pages[route.name] ? pages[route.name](route) : pages.notFound();
-
-    view.innerHTML = page.html;
-    document.title = `${page.title} — LabSiber`;
-
+  function updateNav(route) {
     const active = route.name === 'module' ? 'modules' : route.name;
     document.querySelectorAll('[data-nav]').forEach((link) => {
       link.classList.toggle('active', link.dataset.nav === active);
     });
+  }
 
+  function setPage(page, route) {
+    view.innerHTML = page.html;
+    document.title = `${page.title} — LabSiber`;
+    updateNav(route);
     setSidebar(false);
     view.focus({ preventScroll: true });
     window.scrollTo(0, 0);
+  }
+
+  let renderToken = 0;
+
+  async function render() {
+    const token = ++renderToken;
+    const route = parseRoute();
+
+    if (route.name === 'module') {
+      const meta = moduleIndex().find((module) => module.id === route.id);
+      if (meta && meta.status !== 'ready') {
+        setPage({
+          title: meta.title,
+          html: `
+            ${pageHead('Materi', meta.title, 'Modul ini belum siap dibaca.')}
+            <div class="empty">
+              <h2>Konten segera hadir</h2>
+              <p>Modul ini masih dalam antrean. Kembali ke katalog untuk melihat modul yang sudah siap.</p>
+              <p><a href="#/modules">Kembali ke katalog</a></p>
+            </div>`
+        }, route);
+        return;
+      }
+      updateNav(route);
+      view.innerHTML = `
+        ${pageHead('Materi', meta ? meta.title : 'Modul', 'Memuat modul…')}
+        <div class="empty"><h2>Memuat…</h2></div>`;
+      document.title = `${meta ? meta.title : 'Modul'} — LabSiber`;
+
+      try {
+        const module = await ensureModule(route.id);
+        if (token !== renderToken) return;
+        if (!module) {
+          setPage(pages.notFound(), route);
+          return;
+        }
+        setPage({ title: module.title, html: renderLesson(module) }, route);
+      } catch {
+        if (token !== renderToken) return;
+        setPage({
+          title: 'Gagal memuat modul',
+          html: `
+            ${pageHead('Materi', 'Gagal memuat modul', 'Periksa koneksi lalu coba lagi.')}
+            <div class="empty">
+              <h2>Modul tidak bisa dimuat</h2>
+              <p><a href="#/module/${encodeURIComponent(route.id)}">Coba lagi</a> · <a href="#/modules">Kembali ke katalog</a></p>
+            </div>`
+        }, route);
+      }
+      return;
+    }
+
+    const page = pages[route.name] ? pages[route.name](route) : pages.notFound();
+    setPage(page, route);
   }
 
   document.addEventListener('click', (event) => {
@@ -316,9 +547,44 @@
       case 'close-sidebar':
         setSidebar(false);
         break;
+      case 'toggle-complete': {
+        const id = trigger.dataset.module;
+        if (id) {
+          const done = state.setModuleComplete(id, !state.isModuleComplete(id));
+          trigger.textContent = done ? 'Selesai ✓' : 'Tandai selesai';
+          trigger.classList.toggle('btn-primary', done);
+        }
+        break;
+      }
       default:
         break;
     }
+  });
+
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-copy]');
+    if (!button) return;
+    const original = button.textContent;
+    try {
+      await navigator.clipboard.writeText(decodeURIComponent(button.dataset.copy));
+      button.textContent = 'Tersalin';
+    } catch {
+      button.textContent = 'Gagal';
+    }
+    window.setTimeout(() => { button.textContent = original; }, 1500);
+  });
+
+  let noteTimer = 0;
+  view.addEventListener('input', (event) => {
+    const textarea = event.target.closest('[data-note]');
+    if (!textarea) return;
+    const status = view.querySelector('[data-note-status]');
+    if (status) status.textContent = 'Menyimpan…';
+    window.clearTimeout(noteTimer);
+    noteTimer = window.setTimeout(() => {
+      state.setNote(textarea.dataset.note, textarea.value);
+      if (status) status.textContent = 'Tersimpan';
+    }, 500);
   });
 
   sidebar.addEventListener('click', (event) => {
