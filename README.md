@@ -1,5 +1,7 @@
 # LabSiber
 
+[![CI](https://github.com/Andaru0495/Project_belajar_CySec/actions/workflows/ci.yml/badge.svg)](https://github.com/Andaru0495/Project_belajar_CySec/actions/workflows/ci.yml)
+
 Lab belajar **cyber security berbahasa Indonesia** — dari nol, dengan roadmap,
 materi, kuis, simulator terminal, dan panduan lab lokal. Situs statis, gratis,
 privat, dan bisa di-host di GitHub Pages.
@@ -31,6 +33,8 @@ privat, dan bisa di-host di GitHub Pages.
 | [TSD](docs/TSD.md) | Arsitektur, skema data, routing, terminal, keamanan, testing |
 | [Stack](docs/STACK.md) | Keputusan teknologi, termasuk kenapa bukan Rust |
 | [PR Plan](docs/PR_PLAN.md) | Checklist pemisahan kerja dan 15 PR |
+| [CI & Auto-merge](docs/CI.md) | Apa yang divalidasi, kapan PR otomatis merge, setup branch protection |
+| [Security Policy](SECURITY.md) | Cara melaporkan kerentanan secara privat |
 | [ADR](docs/adr/) | Keputusan arsitektur (statis, konten, progres, hosting, terminal) |
 
 ---
@@ -41,8 +45,8 @@ Tidak ada `npm install` dan tidak ada build step.
 
 ```bash
 # Clone
-git clone git@github.com:<username>/labsiber.git
-cd labsiber
+git clone git@github.com:Andaru0495/Project_belajar_CySec.git
+cd Project_belajar_CySec
 
 # Jalankan server statis
 python3 -m http.server 8000
@@ -64,12 +68,15 @@ npx serve .
 
 ## Validasi
 
-Butuh Node.js 20+ (hanya untuk tooling, bukan runtime situs).
+Butuh Node.js 22+ (hanya untuk tooling, bukan runtime situs).
 
 ```bash
-node --check assets/js/app.js assets/js/terminal.js
+# cek syntax semua file JS yang tracked
+while IFS= read -r -d '' file; do node --check "$file"; done < <(git ls-files -z -- '*.js' '*.mjs')
+
 node scripts/validate.mjs
 node scripts/test-terminal.mjs
+node scripts/check-secrets.mjs
 ```
 
 Validator memeriksa:
@@ -78,7 +85,12 @@ Validator memeriksa:
 - Kuis punya 4 opsi dan jawaban yang valid.
 - Pola misi terminal adalah regex valid dan cocok dengan solusinya.
 - Link resource memakai HTTPS.
-- Tidak ada placeholder atau karakter yang tidak disengaja.
+- Tidak ada placeholder, karakter CJK tak sengaja, atau link lokal yang rusak.
+- Tidak ada token/kunci yang tidak sengaja ter-commit.
+
+CI menjalankan pemeriksaan yang sama pada setiap PR. Jika semua lulus dan PR
+berasal dari owner, PR akan di-auto-merge. Detail dan setup branch protection ada
+di [docs/CI.md](docs/CI.md).
 
 ---
 
