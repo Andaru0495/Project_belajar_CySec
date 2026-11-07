@@ -89,6 +89,77 @@
       </div>`;
   }
 
+  function roadmapData() {
+    const data = window.CYBER_ROADMAP;
+    return data && Array.isArray(data.sections) ? data : null;
+  }
+
+  function moduleIndex() {
+    const index = window.CYBER_MODULE_INDEX;
+    return index && Array.isArray(index.modules) ? index.modules : [];
+  }
+
+  function renderRoadmap() {
+    const data = roadmapData();
+    if (!data) {
+      return placeholder(
+        'Peta belajar',
+        'Roadmap cyber security',
+        'Data roadmap belum tersedia.',
+        'Roadmap belum dimuat'
+      );
+    }
+
+    const modules = Object.fromEntries(moduleIndex().map((module) => [module.id, module]));
+    const total = data.sections.reduce((sum, section) => sum + section.nodes.length, 0);
+
+    const sections = data.sections.map((section, index) => {
+      const nodes = section.nodes.map((node) => {
+        const module = node.module ? modules[node.module] : null;
+        const action = module && module.status === 'ready'
+          ? `<a class="node-link" href="#/module/${encodeURIComponent(module.id)}">Buka modul</a>`
+          : `<span class="badge badge-dim">${module ? 'modul segera hadir' : 'belum ada modul'}</span>`;
+
+        return `
+          <li class="node">
+            <span class="node-check" aria-hidden="true"></span>
+            <div class="node-main">
+              <div class="node-title">${escapeHtml(node.title)}</div>
+              <p class="node-desc">${escapeHtml(node.desc)}</p>
+            </div>
+            ${action}
+          </li>`;
+      }).join('');
+
+      return `
+        <details class="roadmap-section"${index === 0 ? ' open' : ''}>
+          <summary class="road-head">
+            <span class="road-head-main">
+              <h2>${escapeHtml(section.title)}</h2>
+              <p>${escapeHtml(section.intro || '')}</p>
+            </span>
+            <span class="road-count">${section.nodes.length} topik</span>
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <ul class="node-list">${nodes}</ul>
+        </details>`;
+    }).join('');
+
+    return `
+      ${pageHead(
+        'Peta belajar',
+        'Roadmap cyber security',
+        `${total} topik dalam ${data.sections.length} bagian. Ikuti urutannya atau lompat ke area yang paling relevan.`
+      )}
+      <div class="roadmap-overview">
+        <div class="roadmap-stat"><strong>${total}</strong><span>topik</span></div>
+        <div class="roadmap-stat"><strong>${data.sections.length}</strong><span>bagian</span></div>
+        <div class="roadmap-stat"><strong>0</strong><span>selesai</span></div>
+        <p class="tiny muted">Status selesai aktif setelah modul dan progress state tersedia.</p>
+      </div>
+      <div class="roadmap-list">${sections}</div>`;
+  }
+
   const pages = {
     dashboard() {
       return {
@@ -110,12 +181,7 @@
     roadmap() {
       return {
         title: 'Roadmap',
-        html: placeholder(
-          'Peta belajar',
-          'Roadmap cyber security',
-          '202 node dari fundamental IT sampai cloud dan karier akan dirender dari kontrak data pada PR #3.',
-          'Roadmap belum dimuat'
-        )
+        html: renderRoadmap()
       };
     },
 
