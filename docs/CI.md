@@ -87,11 +87,12 @@ menunggu selamanya karena `GITHUB_TOKEN` tidak bisa memberi approval.
 
 Settings → Actions → General → Workflow permissions:
 
-- Pilih **Read repository contents**.
-- Workflow `ci.yml` mendeklarasikan izin tambahan per job
-  (`contents: write`, `pull-requests: write`) hanya untuk job `automerge`.
-
-Tidak ada secret yang perlu ditambahkan.
+- Pilih **Read and write permissions** agar job `automerge` bisa melakukan merge.
+- Workflow sendiri membatasi izin:
+  - job `validate`: `contents: read` (tidak bisa menulis),
+  - job `automerge`: `contents: write` + `pull-requests: write` saja.
+- Jika memilih read-only, auto-merge tidak bisa bekerja; PR harus di-merge manual.
+- Tidak ada secret yang perlu ditambahkan.
 
 ### 3.4 Private vulnerability reporting
 

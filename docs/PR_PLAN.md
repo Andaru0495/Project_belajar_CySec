@@ -750,7 +750,7 @@ ke PR sesuai tabel di atas.
 - [ ] Topics: `cybersecurity`, `roadmap`, `learning`, `indonesian`, `static-site`, `github-pages`, `security-education`.
 - [ ] Default branch: `main`.
 - [ ] Settings → General → Pull Requests → **Allow auto-merge**.
-- [ ] Settings → Actions → General → Workflow permissions: **Read repository contents**.
+- [ ] Settings → Actions → General → Workflow permissions: **Read and write permissions** (workflow membatasi `validate` ke read-only; hanya `automerge` yang write).
 - [ ] Settings → Security → **Private vulnerability reporting**: Enable.
 - [ ] Settings → Pages → Source: **GitHub Actions** (setelah PR #14).
 - [ ] Branch protection `main` (setelah PR pertama):
