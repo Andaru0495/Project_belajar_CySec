@@ -119,15 +119,19 @@ flowchart TD
 │   ├── TSD.md
 │   ├── STACK.md
 │   ├── PR_PLAN.md
+│   ├── CI.md
 │   └── adr/
 ├── scripts/
 │   ├── validate.mjs
-│   └── test-terminal.mjs
+│   ├── test-terminal.mjs
+│   └── check-secrets.mjs
+├── SECURITY.md
 └── .github/
     ├── PULL_REQUEST_TEMPLATE.md
     ├── ISSUE_TEMPLATE/
+    ├── dependabot.yml
     └── workflows/
-        ├── validate.yml
+        ├── ci.yml
         └── deploy.yml
 ```
 
@@ -660,13 +664,21 @@ Exit code non-zero jika ada error; dipakai di CI.
 - Menguji permission `cat /etc/shadow` tanpa sudo (harus denied).
 - Menguji setiap pola misi terhadap solusinya.
 
-### 15.3 Pemeriksaan statis
+### 15.3 `scripts/check-secrets.mjs`
 
-- `node --check` untuk semua file JS.
-- Tidak ada `console.log` yang tertinggal (kecuali debug terkontrol).
-- Tidak ada secret (regex sederhana).
+- Memindai file teks yang tracked untuk pola kredensial umum:
+  AWS key, GitHub token, private key, Slack/Google/Stripe/npm token.
+- Menolak file kredensial seperti `.env`, `id_rsa`, `*.pem`, `*.key`.
+- Tidak mencetak nilai secret ke log; hanya lokasi dan jenis temuan.
+- Bukan pengganti GitHub secret scanning, tetapi menjadi gate tambahan.
 
-### 15.4 QA manual
+### 15.4 Pemeriksaan statis
+
+- `node --check` untuk semua file `.js`/`.mjs` yang tracked.
+- Tidak ada `console.log` debug yang tertinggal.
+- Tidak ada secret (lihat `check-secrets.mjs`).
+
+### 15.5 QA manual
 
 | Area | Uji |
 | --- | --- |
@@ -695,14 +707,27 @@ Exit code non-zero jika ada error; dipakai di CI.
 
 ### 16.2 Workflow
 
-**`validate.yml`** — pada `pull_request` dan `push` ke `main`:
+**`ci.yml`** — pada `pull_request` dan `push` ke `main`:
 
 ```yaml
-- checkout
-- setup-node 20
-- node --check assets/js/app.js assets/js/terminal.js content/**/*.js
-- node scripts/validate.mjs
-- node scripts/test-terminal.mjs
+jobs:
+  validate:
+    permissions: { contents: read }
+    steps:
+      - checkout (persist-credentials: false)
+      - setup-node 22
+      - node --check untuk setiap file .js/.mjs tracked
+      - node scripts/validate.mjs
+      - node scripts/test-terminal.mjs
+      - node scripts/check-secrets.mjs
+
+  automerge:
+    needs: validate
+    permissions: { contents: write, pull-requests: write }
+    if: PR non-draft && head repo == repo ini && actor == owner && tidak ada label no-automerge
+    steps:
+      - gh pr merge --auto --squash --delete-branch --match-head-commit <sha>
+      - fallback: gh pr merge --squash --delete-branch --match-head-commit <sha>
 ```
 
 **`deploy.yml`** — pada `push` ke `main`:
@@ -723,13 +748,20 @@ steps:
 environment: github-pages
 ```
 
-### 16.3 Branch protection
+> Catatan: merge langsung oleh `GITHUB_TOKEN` dapat tidak memicu workflow `push`.
+> Utamakan native auto-merge; verifikasi deploy saat PR #14.
+
+### 16.3 Branch protection & auto-merge
 
 - `main` hanya menerima PR.
 - Status check `validate` wajib.
-- Minimal 1 approval (PM).
-- Linear history opsional.
-- Force push dilarang.
+- **Required approvals: 0** agar auto-merge bisa bekerja (review tetap disarankan
+  untuk perubahan sensitif).
+- Auto-merge hanya untuk PR owner dari branch repo sendiri, bukan fork.
+- Label `no-automerge` menahan merge otomatis.
+- Linear history via squash merge.
+- Force push dan deletion dilarang.
+- Detail setup: [docs/CI.md](./CI.md).
 
 ---
 
@@ -772,6 +804,8 @@ Jika `color-mix` tidak didukung, sediakan fallback warna.
 | GitHub Pages subpath | Semua URL relatif; uji di preview |
 | Hash routing & SEO | Meta description; sitemap statis; pertimbangkan prerender nanti |
 | Terminal disalahpahami | Disclaimer UI + dokumentasi batasan |
+| Auto-merge memasukkan perubahan buruk | Validasi wajib; owner-only; label `no-automerge`; branch protection; review untuk perubahan sensitif |
+| Secret bocor di repo publik | `check-secrets.mjs`, GitHub secret scanning, least-privilege token, Dependabot |
 
 ---
 
@@ -787,8 +821,9 @@ Jika `color-mix` tidak didukung, sediakan fallback warna.
 | `module-index.js` | Belum ada | #3 |
 | 17 modul konten | Ada di working tree | #4–#10 |
 | `manifest`, `sw.js`, ikon | Belum ada | #13 |
-| Validator & test | Belum ada | #3, #11 |
-| CI & deploy | Belum ada | #3, #14 |
+| Validator, test terminal, secret scan | Ada | #1 |
+| CI validation + auto-merge | Ada | #1 |
+| Deploy GitHub Pages | Belum ada | #14 |
 | README final & release notes | Sebagian | #1, #15 |
 
 **Catatan:** working tree saat ini berisi prototipe yang belum di-commit. PR plan
@@ -806,6 +841,7 @@ sebelum lolos validator dan QA.
 | [0003](./adr/0003-local-first-progress.md) | Progres lokal tanpa akun |
 | [0004](./adr/0004-github-pages-hosting.md) | GitHub Pages sebagai hosting utama |
 | [0005](./adr/0005-browser-terminal-simulator.md) | Terminal simulasi di browser |
+| [0006](./adr/0006-ci-auto-merge.md) | CI wajib + auto-merge khusus owner |
 
 ---
 

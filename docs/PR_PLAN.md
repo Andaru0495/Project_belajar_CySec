@@ -91,7 +91,8 @@ ci: validate content and deploy to GitHub Pages
 - [ ] **Terminal** — shell virtual, perintah, misi, UI.
 - [ ] **Progres & pencarian** — halaman progres, ekspor/impor, glosarium, Ctrl+K.
 - [ ] **PWA** — manifest, service worker, ikon, offline.
-- [ ] **CI/CD** — validasi, deploy GitHub Pages, branch protection.
+- [ ] **CI & auto-merge** — validasi, secret scan, owner-only merge, branch protection.
+- [ ] **Deploy** — GitHub Pages, workflow, smoke test.
 - [ ] **Rilis** — QA, changelog, tag, release notes.
 
 ### 3.2 Pemisahan file
@@ -103,20 +104,24 @@ ci: validate content and deploy to GitHub Pages
 | `docs/TSD.md` | #1 | |
 | `docs/STACK.md` | #1 | |
 | `docs/PR_PLAN.md` | #1 | |
-| `docs/adr/*.md` | #1 | 5 ADR |
+| `docs/adr/*.md` | #1 | 6 ADR |
 | `.github/PULL_REQUEST_TEMPLATE.md` | #1 | |
-| `.github/ISSUE_TEMPLATE/*.yml` | #1 | Bug, konten, fitur |
+| `.github/ISSUE_TEMPLATE/*.yml` | #1 | Bug, konten, fitur, config |
+| `.github/workflows/ci.yml` | #1 | Validasi + auto-merge owner-only |
+| `scripts/validate.mjs` | #1 | Validator konten + link |
+| `scripts/test-terminal.mjs` | #1 | Smoke test shell (skip jika belum ada) |
+| `scripts/check-secrets.mjs` | #1 | Secret scan repo publik |
+| `SECURITY.md` | #1 | Kebijakan pelaporan kerentanan |
+| `docs/CI.md` | #1 | Setup CI, branch protection, auto-merge |
+| `.github/dependabot.yml` | #1 | Update GitHub Actions |
 | `index.html` | #2 | Shell awal |
 | `assets/css/style.css` | #2 | Design system |
 | `assets/js/app.js` | #2–#4, #11–#13 | Router + view, tumbuh per PR |
 | `assets/icons/favicon.svg` | #2 | |
 | `content/roadmap.js` | #3 | 202 node |
 | `content/module-index.js` | #3 | 17 metadata + status |
-| `scripts/validate.mjs` | #3 | Validator konten |
-| `.github/workflows/validate.yml` | #3 | CI PR |
 | `content/modules/01-fondasi.js` | #4 | 2 modul |
 | `assets/js/terminal.js` | #11 | Shell simulator |
-| `scripts/test-terminal.mjs` | #11 | |
 | `content/modules/02-jaringan.js` | #5 | 3 modul |
 | `content/modules/03-os.js` | #6 | 3 modul |
 | `content/modules/04-kripto-identitas.js` | #7 | 2 modul |
@@ -147,21 +152,26 @@ modul `planned`; UI menampilkan "konten segera hadir" sampai modul menjadi `read
 ### PR #1 — `docs/product-foundation`
 
 **Branch:** `docs/product-foundation`  
-**Ukuran:** L (dokumen)  
+**Ukuran:** L (dokumen + CI bootstrap)  
 **Dependensi:** bootstrap `main`
 
-**Tujuan:** Menetapkan produk, arsitektur, stack, dan rencana eksekusi sebelum kode
-aplikasi ditulis.
+**Tujuan:** Menetapkan produk, arsitektur, stack, rencana eksekusi, dan guardrail CI
+sebelum kode aplikasi ditulis.
 
 **Scope**
 
-- `README.md` (perluas dengan quick start, status, lisensi)
-- `docs/PRD.md`, `docs/TSD.md`, `docs/STACK.md`, `docs/PR_PLAN.md`
-- `docs/adr/0001-static-no-build.md` … `0005-browser-terminal-simulator.md`
+- `README.md` (perluas dengan quick start, status, lisensi, badge CI)
+- `docs/PRD.md`, `docs/TSD.md`, `docs/STACK.md`, `docs/PR_PLAN.md`, `docs/CI.md`
+- `docs/adr/0001` … `0006` (termasuk ADR auto-merge)
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE/bug_report.yml`
 - `.github/ISSUE_TEMPLATE/content_issue.yml`
 - `.github/ISSUE_TEMPLATE/feature_request.yml`
+- `.github/ISSUE_TEMPLATE/config.yml`
+- `.github/workflows/ci.yml`
+- `.github/dependabot.yml`
+- `scripts/validate.mjs`, `scripts/test-terminal.mjs`, `scripts/check-secrets.mjs`
+- `SECURITY.md`
 
 **Acceptance**
 
@@ -170,12 +180,17 @@ aplikasi ditulis.
 - [ ] PR plan memuat checklist dan definisi selesai.
 - [ ] Tidak ada file kode aplikasi yang berubah.
 - [ ] Template issue/PR valid.
+- [ ] CI `validate` hijau di PR ini.
+- [ ] Secret scan 0 temuan.
+- [ ] Auto-merge hanya aktif untuk owner/branch repo sendiri.
 
 **Verifikasi**
 
 - Baca PRD → TSD → STACK → PR_PLAN tanpa kontradiksi.
 - Cek semua link internal relatif valid.
 - Pastikan tidak ada PDF roadmap yang di-commit.
+- Pastikan workflow tidak memakai `pull_request_target`.
+- Pastikan `validate` hanya punya `contents: read`.
 
 ---
 
@@ -231,9 +246,7 @@ placeholder view. Belum ada konten.
 - `content/roadmap.js` — 202 node, 12 bagian.
 - `content/module-index.js` — 17 metadata, `file`, `status` (`planned`/`ready`).
 - `assets/js/app.js` — view roadmap + katalog, filter, pencarian lokal, selector progres.
-- `scripts/validate.mjs` — validator konten.
-- `.github/workflows/validate.yml` — CI pada PR.
-- `package.json`? Tidak perlu. Workflow memanggil `node` langsung.
+- `scripts/validate.mjs` — perluas validator dari PR #1 untuk roadmap/index.
 
 **Acceptance**
 
@@ -470,7 +483,8 @@ placeholder view. Belum ada konten.
 - `assets/js/app.js` — halaman terminal bebas, mount terminal di lesson, simpan
   status misi.
 - `assets/css/style.css` — style terminal jika belum ada.
-- `scripts/test-terminal.mjs` — unit test shell + pola misi.
+- `scripts/test-terminal.mjs` — perluas test dari PR #1 untuk seluruh perintah
+  dan misi baru.
 
 **Acceptance**
 
@@ -640,7 +654,7 @@ semua konten agar misi terminal dari semua modul bisa diuji sekaligus.
 
 | Fase | PR | Checkpoint |
 | --- | --- | --- |
-| **Fase 0 — Fondasi** | #1 | Dokumen disetujui; repo siap |
+| **Fase 0 — Fondasi** | #1 | Dokumen disetujui; CI hijau; auto-merge owner aktif |
 | **Fase 1 — Kerangka** | #2–#3 | Situs terbuka; roadmap & katalog tampil |
 | **Fase 2 — Belajar** | #4 | Modul fondasi bisa dibaca + kuis + catatan |
 | **Fase 3 — Konten** | #5–#10 | 17 modul siap; validator strict |
@@ -672,13 +686,15 @@ ke PR sesuai tabel di atas.
 | `content/modules/05-serangan.js` | #8 | 2 modul |
 | `content/modules/06-blue-team.js` | #9 | 2 modul |
 | `content/modules/07-cloud-prog-karier.js` | #10 | 3 modul |
-| `docs/*` | #1 | Baru |
+| `docs/*`, `SECURITY.md` | #1 | Baru |
 | `assets/js/app.js` | #2–#4, #11–#13 | **Belum ada** |
 | `content/module-index.js` | #3 | **Belum ada** |
-| `scripts/validate.mjs` | #3 | **Belum ada** |
-| `scripts/test-terminal.mjs` | #11 | **Belum ada** |
+| `scripts/validate.mjs` | #1 | Ada |
+| `scripts/test-terminal.mjs` | #1 | Ada |
+| `scripts/check-secrets.mjs` | #1 | Ada |
+| `.github/workflows/ci.yml` | #1 | Ada |
 | `manifest.webmanifest`, `sw.js`, ikon PNG | #13 | **Belum ada** |
-| `.github/workflows/*` | #3, #14 | **Belum ada** |
+| `.github/workflows/deploy.yml` | #14 | **Belum ada** |
 
 **Hasil validasi prototipe (sebelum dipecah ke PR):**
 
@@ -697,15 +713,18 @@ ke PR sesuai tabel di atas.
 
 ## 8. Checklist setup GitHub (untuk PM)
 
-- [ ] Buat repo publik `labsiber` (tanpa README/template, karena sudah ada lokal).
+- [x] Buat repo publik `Project_belajar_CySec`.
 - [ ] Deskripsi: "Lab cyber security berbahasa Indonesia: roadmap, materi, kuis, terminal simulator, dan lab lokal."
 - [ ] Topics: `cybersecurity`, `roadmap`, `learning`, `indonesian`, `static-site`, `github-pages`, `security-education`.
 - [ ] Default branch: `main`.
+- [ ] Settings → General → Pull Requests → **Allow auto-merge**.
 - [ ] Settings → Actions → General → Workflow permissions: **Read repository contents**.
+- [ ] Settings → Security → **Private vulnerability reporting**: Enable.
 - [ ] Settings → Pages → Source: **GitHub Actions** (setelah PR #14).
 - [ ] Branch protection `main` (setelah PR pertama):
   - [ ] Require a pull request before merging.
   - [ ] Require status checks: `validate`.
+  - [ ] Require approvals: **0** (agar auto-merge bisa bekerja).
   - [ ] Require conversation resolution.
   - [ ] Do not allow force pushes.
   - [ ] Do not allow deletions.
@@ -713,6 +732,8 @@ ke PR sesuai tabel di atas.
 - [ ] Tambahkan collaborator jika ada reviewer.
 - [ ] Custom domain opsional (tidak wajib).
 - [ ] Jangan menambahkan secret apa pun; situs tidak membutuhkannya.
+
+Detail auto-merge dan troubleshooting: [docs/CI.md](./CI.md).
 
 ---
 
@@ -723,8 +744,8 @@ Setelah repo lokal siap:
 ```bash
 cd /home/andaru/testing/project_iseng
 
-# Hubungkan ke GitHub (ganti <username>)
-git remote add origin git@github.com:<username>/labsiber.git
+# Remote (sudah terpasang di mesin ini)
+git remote add origin git@github.com:Andaru0495/Project_belajar_CySec.git
 
 # Push main
 git push -u origin main
@@ -736,7 +757,7 @@ git push -u origin docs/product-foundation
 Buka PR:
 
 ```text
-https://github.com/<username>/labsiber/compare/main...docs/product-foundation
+https://github.com/Andaru0495/Project_belajar_CySec/compare/main...docs/product-foundation?expand=1
 ```
 
 Isi deskripsi PR dengan template, centang checklist, lalu minta review/merge.
@@ -770,7 +791,9 @@ git switch -c feat/app-shell
 ## 11. Release checklist v1.0
 
 - [ ] Semua PR #1–#15 merged.
-- [ ] `validate` + `test-terminal` hijau di `main`.
+- [ ] `validate` + `test-terminal` + `check-secrets` hijau di `main`.
+- [ ] Secret scan 0 temuan.
+- [ ] Branch protection `main` aktif; auto-merge hanya owner.
 - [ ] 17 modul `ready`; 202 node tampil.
 - [ ] Semua modul bisa dibuka, kuis dijawab, terminal dijalankan, lab terbaca.
 - [ ] Ekspor → reset → impor berhasil.
