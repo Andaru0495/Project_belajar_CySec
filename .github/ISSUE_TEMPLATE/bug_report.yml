@@ -1,0 +1,69 @@
+name: Bug report
+description: Laporkan bug pada situs, kuis, terminal, atau progres.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Terima kasih sudah melapor. Jangan menyertakan data pribadi, token, atau
+        kredensial nyata. Untuk masalah keamanan, jangan buka issue publik—
+        hubungi maintainer secara privat.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Ringkasan
+      description: Apa yang terjadi dan apa yang seharusnya terjadi?
+      placeholder: "Contoh: Klik 'Tandai selesai' tidak mengubah progres roadmap."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Langkah reproduksi
+      description: Tulis langkah yang bisa diikuti orang lain.
+      placeholder: |
+        1. Buka #/module/fondasi
+        2. Jawab kuis
+        3. Klik tandai selesai
+        4. Lihat progres
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Lingkungan
+      description: Browser, versi, OS, dan apakah dibuka dari localhost atau GitHub Pages.
+      placeholder: "Chrome 131 / Android 14 / GitHub Pages"
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console / error
+      description: Tempel pesan error dari DevTools Console jika ada.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Konteks tambahan
+      description: Screenshot, catatan, atau hal lain yang membantu.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Konfirmasi
+      options:
+        - label: Saya sudah mencari issue yang serupa.
+          required: true
+        - label: Saya tidak menyertakan data pribadi atau kredensial nyata.
+          required: true
