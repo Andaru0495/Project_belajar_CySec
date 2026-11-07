@@ -680,6 +680,13 @@ ke PR sesuai tabel di atas.
 | `manifest.webmanifest`, `sw.js`, ikon PNG | #13 | **Belum ada** |
 | `.github/workflows/*` | #3, #14 | **Belum ada** |
 
+**Hasil validasi prototipe (sebelum dipecah ke PR):**
+
+- 17 modul, 202 node roadmap, 119 soal kuis, 102 misi terminal, 191 istilah.
+- Semua pola misi terminal cocok dengan solusinya.
+- Semua resource memakai `https://`.
+- Tidak ada karakter CJK tak sengaja atau placeholder aktif.
+
 **Yang tidak boleh di-commit**
 
 - `cyber-security.pdf` (referensi lokal; hak cipta).
