@@ -32,7 +32,7 @@ privat, dan bisa di-host di GitHub Pages.
 | [PRD](docs/PRD.md) | Masalah, pengguna, lingkup, kebutuhan, metrik, risiko |
 | [TSD](docs/TSD.md) | Arsitektur, skema data, routing, terminal, keamanan, testing |
 | [Stack](docs/STACK.md) | Keputusan teknologi, termasuk kenapa bukan Rust |
-| [PR Plan](docs/PR_PLAN.md) | Checklist pemisahan kerja dan 15 PR |
+| [PR Plan](docs/PR_PLAN.md) | Checklist pemisahan kerja dan rencana PR |
 | [CI & Auto-merge](docs/CI.md) | Apa yang divalidasi, kapan PR otomatis merge, setup branch protection |
 | [Security Policy](SECURITY.md) | Cara melaporkan kerentanan secara privat |
 | [ADR](docs/adr/) | Keputusan arsitektur (statis, konten, progres, hosting, terminal) |

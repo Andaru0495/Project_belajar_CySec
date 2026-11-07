@@ -822,7 +822,7 @@ git switch -c feat/app-shell
 
 ## 11. Release checklist v1.0
 
-- [ ] Semua PR #1–#15 merged.
+- [ ] Semua PR #1, #1b, dan #2–#15 merged.
 - [ ] `validate` + `test-terminal` + `check-secrets` hijau di `main`.
 - [ ] Secret scan 0 temuan.
 - [ ] Branch protection `main` aktif; auto-merge hanya owner.
