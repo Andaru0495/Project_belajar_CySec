@@ -104,16 +104,18 @@ ci: validate content and deploy to GitHub Pages
 | `docs/TSD.md` | #1 | |
 | `docs/STACK.md` | #1 | |
 | `docs/PR_PLAN.md` | #1 | |
-| `docs/adr/*.md` | #1 | 6 ADR |
+| `docs/adr/0001`–`0005` | #1 | 5 ADR |
+| `docs/adr/0006` | #1b | ADR auto-merge |
 | `.github/PULL_REQUEST_TEMPLATE.md` | #1 | |
-| `.github/ISSUE_TEMPLATE/*.yml` | #1 | Bug, konten, fitur, config |
-| `.github/workflows/ci.yml` | #1 | Validasi + auto-merge owner-only |
-| `scripts/validate.mjs` | #1 | Validator konten + link |
-| `scripts/test-terminal.mjs` | #1 | Smoke test shell (skip jika belum ada) |
-| `scripts/check-secrets.mjs` | #1 | Secret scan repo publik |
-| `SECURITY.md` | #1 | Kebijakan pelaporan kerentanan |
-| `docs/CI.md` | #1 | Setup CI, branch protection, auto-merge |
-| `.github/dependabot.yml` | #1 | Update GitHub Actions |
+| `.github/ISSUE_TEMPLATE/bug_report.yml`, `content_issue.yml`, `feature_request.yml` | #1 | |
+| `.github/ISSUE_TEMPLATE/config.yml` | #1b | Tautan laporan privat |
+| `.github/workflows/ci.yml` | #1b | Validasi + auto-merge owner-only |
+| `scripts/validate.mjs` | #1b | Validator konten + link |
+| `scripts/test-terminal.mjs` | #1b | Smoke test shell (skip jika belum ada) |
+| `scripts/check-secrets.mjs` | #1b | Secret scan repo publik |
+| `SECURITY.md` | #1b | Kebijakan pelaporan kerentanan |
+| `docs/CI.md` | #1b | Setup CI, branch protection, auto-merge |
+| `.github/dependabot.yml` | #1b | Update GitHub Actions |
 | `index.html` | #2 | Shell awal |
 | `assets/css/style.css` | #2 | Design system |
 | `assets/js/app.js` | #2–#4, #11–#13 | Router + view, tumbuh per PR |
@@ -149,48 +151,78 @@ modul `planned`; UI menampilkan "konten segera hadir" sampai modul menjadi `read
 
 ## 4. Daftar PR
 
-### PR #1 — `docs/product-foundation`
+### PR #1 — `docs/product-foundation` (merged)
 
 **Branch:** `docs/product-foundation`  
-**Ukuran:** L (dokumen + CI bootstrap)  
-**Dependensi:** bootstrap `main`
+**Ukuran:** L (dokumen)  
+**Dependensi:** bootstrap `main`  
+**Status:** sudah di-merge ke `main`
 
-**Tujuan:** Menetapkan produk, arsitektur, stack, rencana eksekusi, dan guardrail CI
-sebelum kode aplikasi ditulis.
+**Tujuan:** Menetapkan produk, arsitektur, stack, dan rencana eksekusi sebelum kode
+aplikasi ditulis.
 
 **Scope**
 
-- `README.md` (perluas dengan quick start, status, lisensi, badge CI)
-- `docs/PRD.md`, `docs/TSD.md`, `docs/STACK.md`, `docs/PR_PLAN.md`, `docs/CI.md`
-- `docs/adr/0001` … `0006` (termasuk ADR auto-merge)
+- `README.md` (quick start, status, lisensi)
+- `docs/PRD.md`, `docs/TSD.md`, `docs/STACK.md`, `docs/PR_PLAN.md`
+- `docs/adr/0001` … `0005`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE/bug_report.yml`
 - `.github/ISSUE_TEMPLATE/content_issue.yml`
 - `.github/ISSUE_TEMPLATE/feature_request.yml`
-- `.github/ISSUE_TEMPLATE/config.yml`
-- `.github/workflows/ci.yml`
-- `.github/dependabot.yml`
-- `scripts/validate.mjs`, `scripts/test-terminal.mjs`, `scripts/check-secrets.mjs`
-- `SECURITY.md`
 
 **Acceptance**
 
-- [ ] Dokumen saling konsisten (angka 17 modul/202 node, stack, PR plan).
-- [ ] Stack menjelaskan keputusan "bukan Rust".
-- [ ] PR plan memuat checklist dan definisi selesai.
-- [ ] Tidak ada file kode aplikasi yang berubah.
-- [ ] Template issue/PR valid.
-- [ ] CI `validate` hijau di PR ini.
-- [ ] Secret scan 0 temuan.
-- [ ] Auto-merge hanya aktif untuk owner/branch repo sendiri.
+- [x] Dokumen saling konsisten (angka 17 modul/202 node, stack, PR plan).
+- [x] Stack menjelaskan keputusan "bukan Rust".
+- [x] PR plan memuat checklist dan definisi selesai.
+- [x] Tidak ada file kode aplikasi yang berubah.
+- [x] Template issue/PR valid.
 
 **Verifikasi**
 
 - Baca PRD → TSD → STACK → PR_PLAN tanpa kontradiksi.
 - Cek semua link internal relatif valid.
 - Pastikan tidak ada PDF roadmap yang di-commit.
-- Pastikan workflow tidak memakai `pull_request_target`.
-- Pastikan `validate` hanya punya `contents: read`.
+
+---
+
+### PR #1b — `ci/validate-automerge`
+
+**Branch:** `ci/validate-automerge`  
+**Ukuran:** M  
+**Dependensi:** #1 (merged)
+
+**Tujuan:** Menambahkan guardrail otomatis untuk repo publik: validasi wajib,
+secret scan, dan auto-merge khusus owner.
+
+**Scope**
+
+- `.github/workflows/ci.yml`
+- `.github/dependabot.yml`
+- `.github/ISSUE_TEMPLATE/config.yml`
+- `scripts/validate.mjs`, `scripts/test-terminal.mjs`, `scripts/check-secrets.mjs`
+- `docs/CI.md`
+- `docs/adr/0006-ci-auto-merge.md`
+- `SECURITY.md`
+- Update `README.md`, PRD, TSD, STACK, PR plan
+
+**Acceptance**
+
+- [ ] CI `validate` hijau di PR ini.
+- [ ] Secret scan 0 temuan.
+- [ ] Auto-merge hanya aktif untuk PR owner dari branch repo sendiri.
+- [ ] PR dari fork dan PR berlabel `no-automerge` tidak di-merge otomatis.
+- [ ] `validate` hanya punya `contents: read`.
+- [ ] Workflow tidak memakai `pull_request_target`.
+- [ ] Branch protection: check `validate` wajib, approvals 0.
+
+**Verifikasi**
+
+- Buka PR; pastikan job `validate` dan `automerge` muncul.
+- Pastikan PR otomatis merge setelah `validate` hijau.
+- Cek `main` tetap hijau setelah merge.
+- Sebagai uji negatif, tambahkan label `no-automerge` pada PR berikutnya.
 
 ---
 
@@ -198,7 +230,7 @@ sebelum kode aplikasi ditulis.
 
 **Branch:** `feat/app-shell`  
 **Ukuran:** M  
-**Dependensi:** #1
+**Dependensi:** #1b
 
 **Tujuan:** Situs bisa dibuka tanpa error, dengan layout, navigasi, tema, dan
 placeholder view. Belum ada konten.
@@ -654,7 +686,7 @@ semua konten agar misi terminal dari semua modul bisa diuji sekaligus.
 
 | Fase | PR | Checkpoint |
 | --- | --- | --- |
-| **Fase 0 — Fondasi** | #1 | Dokumen disetujui; CI hijau; auto-merge owner aktif |
+| **Fase 0 — Fondasi** | #1, #1b | Dokumen disetujui; CI hijau; auto-merge owner aktif |
 | **Fase 1 — Kerangka** | #2–#3 | Situs terbuka; roadmap & katalog tampil |
 | **Fase 2 — Belajar** | #4 | Modul fondasi bisa dibaca + kuis + catatan |
 | **Fase 3 — Konten** | #5–#10 | 17 modul siap; validator strict |
@@ -686,13 +718,13 @@ ke PR sesuai tabel di atas.
 | `content/modules/05-serangan.js` | #8 | 2 modul |
 | `content/modules/06-blue-team.js` | #9 | 2 modul |
 | `content/modules/07-cloud-prog-karier.js` | #10 | 3 modul |
-| `docs/*`, `SECURITY.md` | #1 | Baru |
+| `docs/*`, `SECURITY.md` | #1, #1b | Docs + CI policy |
 | `assets/js/app.js` | #2–#4, #11–#13 | **Belum ada** |
 | `content/module-index.js` | #3 | **Belum ada** |
-| `scripts/validate.mjs` | #1 | Ada |
-| `scripts/test-terminal.mjs` | #1 | Ada |
-| `scripts/check-secrets.mjs` | #1 | Ada |
-| `.github/workflows/ci.yml` | #1 | Ada |
+| `scripts/validate.mjs` | #1b | Ada |
+| `scripts/test-terminal.mjs` | #1b | Ada |
+| `scripts/check-secrets.mjs` | #1b | Ada |
+| `.github/workflows/ci.yml` | #1b | Ada |
 | `manifest.webmanifest`, `sw.js`, ikon PNG | #13 | **Belum ada** |
 | `.github/workflows/deploy.yml` | #14 | **Belum ada** |
 
