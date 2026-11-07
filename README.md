@@ -34,6 +34,7 @@ privat, dan bisa di-host di GitHub Pages.
 | [Stack](docs/STACK.md) | Keputusan teknologi, termasuk kenapa bukan Rust |
 | [PR Plan](docs/PR_PLAN.md) | Checklist pemisahan kerja dan rencana PR |
 | [CI & Auto-merge](docs/CI.md) | Apa yang divalidasi, kapan PR otomatis merge, setup branch protection |
+| [Deploy](docs/DEPLOY.md) | GitHub Pages, workflow manual, rollback, troubleshooting |
 | [Agent Operating Model](docs/AGENT_OPERATING_MODEL.md) | Siklus task, kontrak brief, handoff, review gate |
 | [Agent Roles](docs/AGENT_ROLES.md) | Aturan, batas, dan quality bar tiap role coding agent |
 | [Security Policy](SECURITY.md) | Cara melaporkan kerentanan secara privat |
