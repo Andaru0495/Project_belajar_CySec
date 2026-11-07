@@ -144,6 +144,41 @@
     }).join('');
   }
 
+  function renderQuiz(module) {
+    if (!Array.isArray(module.quiz) || module.quiz.length === 0) return '';
+    const best = state.get().quiz[module.id];
+    const bestText = best ? `Terbaik: ${best.best}/${best.total}` : 'Belum ada skor';
+
+    const questions = module.quiz.map((item, index) => `
+      <div class="quiz-q" data-quiz-question="${index}">
+        <p><span class="q-num">${String(index + 1).padStart(2, '0')}</span>${inline(item.q)}</p>
+        <div class="quiz-options">
+          ${item.options.map((option, optionIndex) => `
+            <button class="quiz-option" type="button" data-quiz-option="${optionIndex}">
+              <span class="opt-letter">${String.fromCharCode(65 + optionIndex)}</span>
+              <span>${inline(option)}</span>
+            </button>`).join('')}
+        </div>
+        <div class="quiz-explain" hidden>${inline(item.explain)}</div>
+      </div>`).join('');
+
+    return `
+      <section class="prose-section" id="quiz">
+        <h2>Kuis</h2>
+        <div class="quiz" data-quiz-module="${escapeHtml(module.id)}">
+          <div class="quiz-head">
+            <h3>Cek pemahaman</h3>
+            <div class="quiz-meta">
+              <span class="quiz-score" data-quiz-score>0/${module.quiz.length}</span>
+              <span class="quiz-best">${bestText}</span>
+            </div>
+          </div>
+          <div class="quiz-list">${questions}</div>
+          <div class="quiz-done" hidden data-quiz-result></div>
+        </div>
+      </section>`;
+  }
+
   function renderLesson(module) {
     const meta = moduleIndex().find((item) => item.id === module.id);
     const ordered = [...moduleIndex()].sort((a, b) => a.order - b.order);
@@ -152,6 +187,7 @@
     const next = position >= 0 && position < ordered.length - 1 ? ordered[position + 1] : null;
     const done = state.isModuleComplete(module.id);
     const note = state.getNote(module.id);
+    const quiz = renderQuiz(module);
 
     const sections = module.sections.map((section, index) => `
       <section class="prose-section" id="section-${index + 1}">
@@ -215,6 +251,8 @@
               <div class="terms">${terms}</div>
             </section>
 
+            ${quiz}
+
             <section class="prose-section" id="lab">
               <h2>Lab lokal</h2>
               <div class="lab">
@@ -257,6 +295,7 @@
               <ol>${toc}</ol>
               <div class="toc-extra">
                 <a href="#terms">Istilah kunci</a>
+                ${module.quiz?.length ? '<a href="#quiz">Kuis</a>' : ''}
                 <a href="#lab">Lab lokal</a>
                 <a href="#notes">Catatan</a>
                 <a href="#resources">Sumber</a>
@@ -265,6 +304,74 @@
           </aside>
         </div>
       </article>`;
+  }
+
+  function answerQuiz(option) {
+    const question = option.closest('[data-quiz-question]');
+    const quiz = option.closest('[data-quiz-module]');
+    if (!question || !quiz || question.dataset.answered === '1') return;
+
+    const module = (window.CYBER_MODULES || {})[quiz.dataset.quizModule];
+    const item = module?.quiz?.[Number(question.dataset.quizQuestion)];
+    if (!item) return;
+
+    const chosen = Number(option.dataset.quizOption);
+    question.dataset.answered = '1';
+    question.dataset.correct = chosen === item.answer ? '1' : '0';
+
+    question.querySelectorAll('[data-quiz-option]').forEach((button) => {
+      button.disabled = true;
+      if (Number(button.dataset.quizOption) === item.answer) button.classList.add('correct');
+    });
+    if (chosen !== item.answer) option.classList.add('wrong');
+
+    const explanation = question.querySelector('.quiz-explain');
+    if (explanation) explanation.hidden = false;
+
+    updateQuiz(quiz, module);
+  }
+
+  function updateQuiz(quiz, module) {
+    const questions = [...quiz.querySelectorAll('[data-quiz-question]')];
+    const answered = questions.filter((question) => question.dataset.answered === '1').length;
+    const correct = questions.filter((question) => question.dataset.correct === '1').length;
+    const score = quiz.querySelector('[data-quiz-score]');
+    if (score) score.textContent = `${correct}/${questions.length}`;
+
+    if (answered !== questions.length) return;
+
+    const result = state.recordQuiz(module.id, correct, questions.length);
+    const best = quiz.querySelector('.quiz-best');
+    if (best) best.textContent = `Terbaik: ${result.best}/${result.total}`;
+
+    const box = quiz.querySelector('[data-quiz-result]');
+    if (box) {
+      box.hidden = false;
+      box.innerHTML = `Kuis selesai: <strong>${correct}/${questions.length}</strong>. Skor terbaik: <strong>${result.best}/${result.total}</strong>. <button class="btn" type="button" data-quiz-retry>Ulangi kuis</button>`;
+    }
+  }
+
+  function resetQuiz(quiz) {
+    const questions = [...quiz.querySelectorAll('[data-quiz-question]')];
+    questions.forEach((question) => {
+      delete question.dataset.answered;
+      delete question.dataset.correct;
+      question.querySelectorAll('[data-quiz-option]').forEach((button) => {
+        button.disabled = false;
+        button.classList.remove('correct', 'wrong');
+      });
+      const explanation = question.querySelector('.quiz-explain');
+      if (explanation) explanation.hidden = true;
+    });
+
+    const score = quiz.querySelector('[data-quiz-score]');
+    if (score) score.textContent = `0/${questions.length}`;
+
+    const box = quiz.querySelector('[data-quiz-result]');
+    if (box) {
+      box.hidden = true;
+      box.innerHTML = '';
+    }
   }
 
   function renderRoadmap() {
@@ -382,21 +489,135 @@
       <div class="module-grid">${cards}</div>`;
   }
 
+  function statGrid(stats, readyCount) {
+    return `
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-value">${stats.modules}<small>/ ${readyCount}</small></div><div class="stat-label">modul selesai</div></div>
+        <div class="stat"><div class="stat-value">${stats.quiz}<small>%</small></div><div class="stat-label">rata-rata kuis</div></div>
+        <div class="stat"><div class="stat-value">${stats.terminal}</div><div class="stat-label">misi terminal</div></div>
+        <div class="stat"><div class="stat-value">${stats.streak}<small>hari</small></div><div class="stat-label">streak</div></div>
+      </div>`;
+  }
+
+  function renderDashboard() {
+    const ready = moduleIndex().filter((module) => module.status === 'ready');
+    const stats = state.stats();
+    const next = ready.find((module) => !state.isModuleComplete(module.id)) || ready[0] || null;
+    const nextDone = next ? state.isModuleComplete(next.id) : false;
+
+    const continueCard = next
+      ? `
+        <div class="continue-card">
+          <span class="continue-icon">${String(next.order).padStart(2, '0')}</span>
+          <div class="continue-copy">
+            <h2>${nextDone ? 'Ulangi modul' : 'Lanjutkan belajar'}</h2>
+            <p>${escapeHtml(next.title)}</p>
+            <p class="tiny muted">${escapeHtml(next.track)} · ${next.duration} menit</p>
+          </div>
+          <a class="btn btn-primary" href="#/module/${encodeURIComponent(next.id)}">${nextDone ? 'Buka lagi' : 'Mulai modul'}</a>
+        </div>`
+      : `
+        <div class="empty">
+          <h2>Belum ada modul siap</h2>
+          <p>Konten sedang disiapkan. Roadmap dan katalog sudah bisa dilihat.</p>
+        </div>`;
+
+    return `
+      ${pageHead(
+        'Roadmap.sh → lab pribadi',
+        'Belajar cyber security dari nol, dengan praktik.',
+        'Roadmap, materi, kuis, simulator terminal, dan lab lokal dalam satu tempat. Situs statis, gratis, dan privat.'
+      )}
+      ${statGrid(stats, ready.length)}
+      ${continueCard}
+      <div class="card">
+        <span class="eyebrow">Peta belajar</span>
+        <h2 class="card-heading">202 topik, 12 bagian</h2>
+        <p>Lihat seluruh roadmap atau langsung pilih modul yang sudah siap dibaca.</p>
+        <p class="card-actions">
+          <a class="btn" href="#/roadmap">Buka roadmap</a>
+          <a class="btn" href="#/modules">Katalog modul</a>
+          <a class="btn" href="#/progress">Lihat progres</a>
+        </p>
+      </div>`;
+  }
+
+  function renderProgress() {
+    const modules = [...moduleIndex()].sort((a, b) => a.order - b.order);
+    const stats = state.stats();
+    const streak = state.get().streak;
+
+    const rows = modules.map((module) => {
+      const ready = module.status === 'ready';
+      const done = state.isModuleComplete(module.id);
+      const quiz = state.get().quiz[module.id];
+      const terminal = state.get().terminal[module.id] || [];
+      const note = state.getNote(module.id);
+      const status = done ? 'selesai' : ready ? 'siap' : 'segera';
+      const statusClass = done ? 'badge-green' : ready ? '' : 'badge-dim';
+
+      return `
+        <tr>
+          <td>
+            <div class="m-title">${escapeHtml(module.title)}</div>
+            <div class="tiny muted">${escapeHtml(module.track)}</div>
+          </td>
+          <td><span class="badge ${statusClass}">${status}</span></td>
+          <td>${quiz ? `${quiz.best}/${quiz.total}` : '—'}</td>
+          <td>${terminal.length || '—'}</td>
+          <td>${note ? 'ada' : '—'}</td>
+          <td>${ready ? `<a href="#/module/${encodeURIComponent(module.id)}">Buka</a>` : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+      ${pageHead(
+        'Progres',
+        'Progres belajar',
+        'Semua data tersimpan di browser ini. Ekspor JSON untuk cadangan atau pindah perangkat.'
+      )}
+      ${statGrid(stats, modules.filter((module) => module.status === 'ready').length)}
+      <div class="card">
+        <span class="eyebrow">Cadangan</span>
+        <h2 class="card-heading">Data & cadangan</h2>
+        <p>Ekspor progres sebelum membersihkan browser atau pindah perangkat.</p>
+        <p class="tiny muted">Streak: ${streak.count} hari · terakhir ${streak.last || '—'}</p>
+        <p class="card-actions">
+          <button class="btn" type="button" data-action="export-progress">Ekspor JSON</button>
+          <label class="btn">Impor JSON<input type="file" accept="application/json" data-import hidden></label>
+          <button class="btn" type="button" data-action="reset-progress">Reset progres</button>
+        </p>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Modul</th><th>Status</th><th>Kuis</th><th>Terminal</th><th>Catatan</th><th>Aksi</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  function exportProgress() {
+    const blob = new Blob([JSON.stringify(state.exportState(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'labsiber-progress.json';
+    anchor.hidden = true;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   const pages = {
     dashboard() {
       return {
         title: 'Dashboard',
-        html: `
-          ${pageHead(
-            'Roadmap.sh → lab pribadi',
-            'Belajar cyber security dari nol, dengan praktik.',
-            'Roadmap, materi, kuis, simulator terminal, dan lab lokal dalam satu tempat. Situs statis, gratis, dan privat.'
-          )}
-          <div class="empty">
-            <h2>Shell dan navigasi sudah aktif</h2>
-            <p>Dashboard penuh, roadmap, dan modul masuk lewat PR berikutnya.</p>
-            <p><a href="#/roadmap">Buka roadmap</a> · <a href="#/modules">Daftar modul</a></p>
-          </div>`
+        html: renderDashboard()
       };
     },
 
@@ -441,12 +662,7 @@
     progress() {
       return {
         title: 'Progres & catatan',
-        html: placeholder(
-          'Progres',
-          'Progres belajar',
-          'Statistik, ekspor/impor, dan catatan akan aktif setelah modul dan state tersedia.',
-          'Progres belum aktif'
-        )
+        html: renderProgress()
       };
     },
 
@@ -556,6 +772,16 @@
         }
         break;
       }
+      case 'export-progress':
+        exportProgress();
+        break;
+      case 'reset-progress':
+        if (window.confirm('Hapus semua progres, catatan, dan skor kuis?')) {
+          state.reset();
+          applyTheme(state.get().theme);
+          render();
+        }
+        break;
       default:
         break;
     }
@@ -574,6 +800,16 @@
     window.setTimeout(() => { button.textContent = original; }, 1500);
   });
 
+  view.addEventListener('click', (event) => {
+    const option = event.target.closest('[data-quiz-option]');
+    if (option) {
+      answerQuiz(option);
+      return;
+    }
+    const retry = event.target.closest('[data-quiz-retry]');
+    if (retry) resetQuiz(retry.closest('.quiz'));
+  });
+
   let noteTimer = 0;
   view.addEventListener('input', (event) => {
     const textarea = event.target.closest('[data-note]');
@@ -585,6 +821,19 @@
       state.setNote(textarea.dataset.note, textarea.value);
       if (status) status.textContent = 'Tersimpan';
     }, 500);
+  });
+
+  view.addEventListener('change', (event) => {
+    const input = event.target.closest('[data-import]');
+    if (!input || !input.files || !input.files[0]) return;
+    input.files[0].text().then((text) => {
+      if (state.importState(text)) {
+        applyTheme(state.get().theme);
+        render();
+      } else {
+        window.alert('File progres tidak valid atau versinya lebih baru.');
+      }
+    }).catch(() => window.alert('Gagal membaca file progres.'));
   });
 
   sidebar.addEventListener('click', (event) => {
