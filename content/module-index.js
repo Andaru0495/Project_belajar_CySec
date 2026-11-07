@@ -17,7 +17,7 @@ window.CYBER_MODULE_INDEX = {
       level: 'Pemula',
       duration: 45,
       summary: 'Sebelum menyentuh tool, pahami dulu apa yang dilindungi: kerahasiaan, integritas, ketersediaan—dan bagaimana keputusan diambil berdasarkan risiko, bukan rasa takut.',
-      status: 'planned'
+      status: 'ready'
     },
     {
       id: 'hardware',
@@ -28,7 +28,7 @@ window.CYBER_MODULE_INDEX = {
       level: 'Pemula',
       duration: 35,
       summary: 'Mengenal komponen komputer dan cara perangkat terhubung, lalu memakai pengetahuan itu untuk troubleshooting dan memperkecil attack surface fisik.',
-      status: 'planned'
+      status: 'ready'
     },
     {
       id: 'jaringan',

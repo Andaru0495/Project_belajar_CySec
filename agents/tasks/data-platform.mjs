@@ -49,7 +49,7 @@ export default [
     title: 'Implement local progress schema and derived selectors',
     role: 'data-platform',
     reviewers: ['frontend', 'tech-lead', 'qa'],
-    status: 'in-progress',
+    status: 'done',
     priority: 'P0',
     size: 'M',
     pr: '#4',
