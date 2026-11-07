@@ -91,7 +91,9 @@ ci: validate content and deploy to GitHub Pages
 - [ ] **Terminal** — shell virtual, perintah, misi, UI.
 - [ ] **Progres & pencarian** — halaman progres, ekspor/impor, glosarium, Ctrl+K.
 - [ ] **PWA** — manifest, service worker, ikon, offline.
-- [ ] **CI/CD** — validasi, deploy GitHub Pages, branch protection.
+- [ ] **CI & auto-merge** — validasi, secret scan, owner-only merge, branch protection.
+- [ ] **Agent operating model** — role charter, task mandiri, handler CLI, dependency graph.
+- [ ] **Deploy** — GitHub Pages, workflow, smoke test.
 - [ ] **Rilis** — QA, changelog, tag, release notes.
 
 ### 3.2 Pemisahan file
@@ -103,20 +105,32 @@ ci: validate content and deploy to GitHub Pages
 | `docs/TSD.md` | #1 | |
 | `docs/STACK.md` | #1 | |
 | `docs/PR_PLAN.md` | #1 | |
-| `docs/adr/*.md` | #1 | 5 ADR |
+| `docs/adr/0001`–`0005` | #1 | 5 ADR |
+| `docs/adr/0006` | #1b | ADR auto-merge |
 | `.github/PULL_REQUEST_TEMPLATE.md` | #1 | |
-| `.github/ISSUE_TEMPLATE/*.yml` | #1 | Bug, konten, fitur |
+| `.github/ISSUE_TEMPLATE/bug_report.yml`, `content_issue.yml`, `feature_request.yml` | #1 | |
+| `.github/ISSUE_TEMPLATE/config.yml` | #1b | Tautan laporan privat |
+| `.github/workflows/ci.yml` | #1b | Validasi + auto-merge owner-only |
+| `scripts/validate.mjs` | #1b | Validator konten + link |
+| `scripts/test-terminal.mjs` | #1b | Smoke test shell (skip jika belum ada) |
+| `scripts/check-secrets.mjs` | #1b | Secret scan repo publik |
+| `SECURITY.md` | #1b | Kebijakan pelaporan kerentanan |
+| `docs/CI.md` | #1b | Setup CI, branch protection, auto-merge |
+| `.github/dependabot.yml` | #1b | Update GitHub Actions |
+| `docs/AGENT_OPERATING_MODEL.md` | #1c | Siklus task, handoff, review gate |
+| `docs/AGENT_ROLES.md` | #1c | Charter 10 role |
+| `agents/roles.mjs` | #1c | Registry role |
+| `agents/tasks/*.mjs` | #1c | 24 task mandiri |
+| `agents/README.md` | #1c | Cara pakai registry |
+| `scripts/agents.mjs` | #1c | CLI handler + validator |
 | `index.html` | #2 | Shell awal |
 | `assets/css/style.css` | #2 | Design system |
 | `assets/js/app.js` | #2–#4, #11–#13 | Router + view, tumbuh per PR |
 | `assets/icons/favicon.svg` | #2 | |
 | `content/roadmap.js` | #3 | 202 node |
 | `content/module-index.js` | #3 | 17 metadata + status |
-| `scripts/validate.mjs` | #3 | Validator konten |
-| `.github/workflows/validate.yml` | #3 | CI PR |
 | `content/modules/01-fondasi.js` | #4 | 2 modul |
 | `assets/js/terminal.js` | #11 | Shell simulator |
-| `scripts/test-terminal.mjs` | #11 | |
 | `content/modules/02-jaringan.js` | #5 | 3 modul |
 | `content/modules/03-os.js` | #6 | 3 modul |
 | `content/modules/04-kripto-identitas.js` | #7 | 2 modul |
@@ -144,20 +158,21 @@ modul `planned`; UI menampilkan "konten segera hadir" sampai modul menjadi `read
 
 ## 4. Daftar PR
 
-### PR #1 — `docs/product-foundation`
+### PR #1 — `docs/product-foundation` (merged)
 
 **Branch:** `docs/product-foundation`  
 **Ukuran:** L (dokumen)  
-**Dependensi:** bootstrap `main`
+**Dependensi:** bootstrap `main`  
+**Status:** sudah di-merge ke `main`
 
 **Tujuan:** Menetapkan produk, arsitektur, stack, dan rencana eksekusi sebelum kode
 aplikasi ditulis.
 
 **Scope**
 
-- `README.md` (perluas dengan quick start, status, lisensi)
+- `README.md` (quick start, status, lisensi)
 - `docs/PRD.md`, `docs/TSD.md`, `docs/STACK.md`, `docs/PR_PLAN.md`
-- `docs/adr/0001-static-no-build.md` … `0005-browser-terminal-simulator.md`
+- `docs/adr/0001` … `0005`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE/bug_report.yml`
 - `.github/ISSUE_TEMPLATE/content_issue.yml`
@@ -165,11 +180,11 @@ aplikasi ditulis.
 
 **Acceptance**
 
-- [ ] Dokumen saling konsisten (angka 17 modul/202 node, stack, PR plan).
-- [ ] Stack menjelaskan keputusan "bukan Rust".
-- [ ] PR plan memuat checklist dan definisi selesai.
-- [ ] Tidak ada file kode aplikasi yang berubah.
-- [ ] Template issue/PR valid.
+- [x] Dokumen saling konsisten (angka 17 modul/202 node, stack, PR plan).
+- [x] Stack menjelaskan keputusan "bukan Rust".
+- [x] PR plan memuat checklist dan definisi selesai.
+- [x] Tidak ada file kode aplikasi yang berubah.
+- [x] Template issue/PR valid.
 
 **Verifikasi**
 
@@ -179,11 +194,88 @@ aplikasi ditulis.
 
 ---
 
+### PR #1b — `ci/validate-automerge`
+
+**Branch:** `ci/validate-automerge`  
+**Ukuran:** M  
+**Dependensi:** #1 (merged)
+
+**Tujuan:** Menambahkan guardrail otomatis untuk repo publik: validasi wajib,
+secret scan, dan auto-merge khusus owner.
+
+**Scope**
+
+- `.github/workflows/ci.yml`
+- `.github/dependabot.yml`
+- `.github/ISSUE_TEMPLATE/config.yml`
+- `scripts/validate.mjs`, `scripts/test-terminal.mjs`, `scripts/check-secrets.mjs`
+- `docs/CI.md`
+- `docs/adr/0006-ci-auto-merge.md`
+- `SECURITY.md`
+- Update `README.md`, PRD, TSD, STACK, PR plan
+
+**Acceptance**
+
+- [ ] CI `validate` hijau di PR ini.
+- [ ] Secret scan 0 temuan.
+- [ ] Auto-merge hanya aktif untuk PR owner dari branch repo sendiri.
+- [ ] PR dari fork dan PR berlabel `no-automerge` tidak di-merge otomatis.
+- [ ] `validate` hanya punya `contents: read`.
+- [ ] Workflow tidak memakai `pull_request_target`.
+- [ ] Branch protection: check `validate` wajib, approvals 0.
+
+**Verifikasi**
+
+- Buka PR; pastikan job `validate` dan `automerge` muncul.
+- Pastikan PR otomatis merge setelah `validate` hijau.
+- Cek `main` tetap hijau setelah merge.
+- Sebagai uji negatif, tambahkan label `no-automerge` pada PR berikutnya.
+
+---
+
+### PR #1c — `docs/agent-operating-model`
+
+**Branch:** `docs/agent-operating-model`  
+**Ukuran:** L (dokumen + registry + CLI)  
+**Dependensi:** #1b
+
+**Tujuan:** Membagi pekerjaan menjadi role dan task mandiri, dengan aturan,
+batas, acceptance, verification, dan handoff yang bisa dimuat coding agent.
+
+**Scope**
+
+- `docs/AGENT_OPERATING_MODEL.md`
+- `docs/AGENT_ROLES.md`
+- `agents/README.md`, `agents/roles.mjs`, `agents/tasks/*.mjs`
+- `scripts/agents.mjs`
+- Update `.github/workflows/ci.yml`, README, TSD, PR plan
+
+**Acceptance**
+
+- [ ] 10 role punya mission, owns, doesNotOwn, rules, checks, handoff, charter.
+- [ ] 24 task punya owner, reviewer, dependency, files, acceptance, verification, out-of-scope.
+- [ ] Tidak ada dependency cycle atau task `done` tanpa PR.
+- [ ] `node scripts/agents.mjs check` lulus.
+- [ ] `node scripts/agents.mjs task <ID>` menampilkan brief + aturan role.
+- [ ] CI menjalankan `agents check`.
+
+**Verifikasi**
+
+```bash
+node scripts/agents.mjs check
+node scripts/agents.mjs board
+node scripts/agents.mjs task T-006
+node scripts/agents.mjs next --role frontend
+node scripts/agents.mjs graph
+```
+
+---
+
 ### PR #2 — `feat/app-shell`
 
 **Branch:** `feat/app-shell`  
 **Ukuran:** M  
-**Dependensi:** #1
+**Dependensi:** #1c
 
 **Tujuan:** Situs bisa dibuka tanpa error, dengan layout, navigasi, tema, dan
 placeholder view. Belum ada konten.
@@ -231,9 +323,7 @@ placeholder view. Belum ada konten.
 - `content/roadmap.js` — 202 node, 12 bagian.
 - `content/module-index.js` — 17 metadata, `file`, `status` (`planned`/`ready`).
 - `assets/js/app.js` — view roadmap + katalog, filter, pencarian lokal, selector progres.
-- `scripts/validate.mjs` — validator konten.
-- `.github/workflows/validate.yml` — CI pada PR.
-- `package.json`? Tidak perlu. Workflow memanggil `node` langsung.
+- `scripts/validate.mjs` — perluas validator dari PR #1b untuk roadmap/index.
 
 **Acceptance**
 
@@ -470,7 +560,8 @@ placeholder view. Belum ada konten.
 - `assets/js/app.js` — halaman terminal bebas, mount terminal di lesson, simpan
   status misi.
 - `assets/css/style.css` — style terminal jika belum ada.
-- `scripts/test-terminal.mjs` — unit test shell + pola misi.
+- `scripts/test-terminal.mjs` — perluas test dari PR #1b untuk seluruh perintah
+  dan misi baru.
 
 **Acceptance**
 
@@ -640,7 +731,7 @@ semua konten agar misi terminal dari semua modul bisa diuji sekaligus.
 
 | Fase | PR | Checkpoint |
 | --- | --- | --- |
-| **Fase 0 — Fondasi** | #1 | Dokumen disetujui; repo siap |
+| **Fase 0 — Fondasi** | #1, #1b, #1c | Dokumen disetujui; CI hijau; registry role/task valid; auto-merge owner aktif |
 | **Fase 1 — Kerangka** | #2–#3 | Situs terbuka; roadmap & katalog tampil |
 | **Fase 2 — Belajar** | #4 | Modul fondasi bisa dibaca + kuis + catatan |
 | **Fase 3 — Konten** | #5–#10 | 17 modul siap; validator strict |
@@ -672,13 +763,17 @@ ke PR sesuai tabel di atas.
 | `content/modules/05-serangan.js` | #8 | 2 modul |
 | `content/modules/06-blue-team.js` | #9 | 2 modul |
 | `content/modules/07-cloud-prog-karier.js` | #10 | 3 modul |
-| `docs/*` | #1 | Baru |
+| `docs/*`, `SECURITY.md` | #1, #1b, #1c | Docs + CI policy + agent model |
+| `agents/`, `scripts/agents.mjs` | #1c | Role/task registry + CLI |
 | `assets/js/app.js` | #2–#4, #11–#13 | **Belum ada** |
+| `assets/js/state.js` | #4 | **Belum ada** |
 | `content/module-index.js` | #3 | **Belum ada** |
-| `scripts/validate.mjs` | #3 | **Belum ada** |
-| `scripts/test-terminal.mjs` | #11 | **Belum ada** |
+| `scripts/validate.mjs` | #1b | Ada |
+| `scripts/test-terminal.mjs` | #1b | Ada |
+| `scripts/check-secrets.mjs` | #1b | Ada |
+| `.github/workflows/ci.yml` | #1b | Ada |
 | `manifest.webmanifest`, `sw.js`, ikon PNG | #13 | **Belum ada** |
-| `.github/workflows/*` | #3, #14 | **Belum ada** |
+| `.github/workflows/deploy.yml` | #14 | **Belum ada** |
 
 **Hasil validasi prototipe (sebelum dipecah ke PR):**
 
@@ -697,15 +792,18 @@ ke PR sesuai tabel di atas.
 
 ## 8. Checklist setup GitHub (untuk PM)
 
-- [ ] Buat repo publik `labsiber` (tanpa README/template, karena sudah ada lokal).
+- [x] Buat repo publik `Project_belajar_CySec`.
 - [ ] Deskripsi: "Lab cyber security berbahasa Indonesia: roadmap, materi, kuis, terminal simulator, dan lab lokal."
 - [ ] Topics: `cybersecurity`, `roadmap`, `learning`, `indonesian`, `static-site`, `github-pages`, `security-education`.
 - [ ] Default branch: `main`.
-- [ ] Settings → Actions → General → Workflow permissions: **Read repository contents**.
+- [ ] Settings → General → Pull Requests → **Allow auto-merge**.
+- [ ] Settings → Actions → General → Workflow permissions: **Read and write permissions** (workflow membatasi `validate` ke read-only; hanya `automerge` yang write).
+- [ ] Settings → Security → **Private vulnerability reporting**: Enable.
 - [ ] Settings → Pages → Source: **GitHub Actions** (setelah PR #14).
 - [ ] Branch protection `main` (setelah PR pertama):
   - [ ] Require a pull request before merging.
   - [ ] Require status checks: `validate`.
+  - [ ] Require approvals: **0** (agar auto-merge bisa bekerja).
   - [ ] Require conversation resolution.
   - [ ] Do not allow force pushes.
   - [ ] Do not allow deletions.
@@ -713,6 +811,8 @@ ke PR sesuai tabel di atas.
 - [ ] Tambahkan collaborator jika ada reviewer.
 - [ ] Custom domain opsional (tidak wajib).
 - [ ] Jangan menambahkan secret apa pun; situs tidak membutuhkannya.
+
+Detail auto-merge dan troubleshooting: [docs/CI.md](./CI.md).
 
 ---
 
@@ -723,8 +823,8 @@ Setelah repo lokal siap:
 ```bash
 cd /home/andaru/testing/project_iseng
 
-# Hubungkan ke GitHub (ganti <username>)
-git remote add origin git@github.com:<username>/labsiber.git
+# Remote (sudah terpasang di mesin ini)
+git remote add origin git@github.com:Andaru0495/Project_belajar_CySec.git
 
 # Push main
 git push -u origin main
@@ -736,7 +836,7 @@ git push -u origin docs/product-foundation
 Buka PR:
 
 ```text
-https://github.com/<username>/labsiber/compare/main...docs/product-foundation
+https://github.com/Andaru0495/Project_belajar_CySec/compare/main...docs/product-foundation?expand=1
 ```
 
 Isi deskripsi PR dengan template, centang checklist, lalu minta review/merge.
@@ -769,8 +869,10 @@ git switch -c feat/app-shell
 
 ## 11. Release checklist v1.0
 
-- [ ] Semua PR #1–#15 merged.
-- [ ] `validate` + `test-terminal` hijau di `main`.
+- [ ] Semua PR #1, #1b, #1c, dan #2–#15 merged.
+- [ ] `validate` + `test-terminal` + `check-secrets` + `agents check` hijau di `main`.
+- [ ] Secret scan 0 temuan.
+- [ ] Branch protection `main` aktif; auto-merge hanya owner.
 - [ ] 17 modul `ready`; 202 node tampil.
 - [ ] Semua modul bisa dibuka, kuis dijawab, terminal dijalankan, lab terbaca.
 - [ ] Ekspor → reset → impor berhasil.

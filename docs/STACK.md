@@ -23,7 +23,8 @@
 | PWA | **Service worker + Web App Manifest** | Offline setelah kunjungan pertama |
 | Testing | **Node.js + `node --check` + script kustom** | Tanpa framework test berat |
 | Hosting | **GitHub Pages** | Gratis, HTTPS, deploy via Actions |
-| CI/CD | **GitHub Actions** | Terintegrasi dengan PR dan Pages |
+| CI/CD | **GitHub Actions + auto-merge khusus owner** | Validasi wajib; fork tidak auto-merge |
+| Keamanan repo | **Secret scan + least-privilege token + Dependabot** | Repo publik tetap aman |
 | Lisensi kode | **MIT** | Permisif, mudah dibagikan |
 | Lisensi konten | **CC BY-SA 4.0** | Terbuka, atribusi, share-alike |
 
@@ -112,10 +113,12 @@ terpisah dengan evaluasi sendiri.
 | --- | --- | --- |
 | Local server | `python3 -m http.server 8000` | Tanpa dependency |
 | Alternatif | `npx serve .` | Butuh Node |
-| Validasi | `node scripts/validate.mjs` | Node 20+ |
+| Validasi | `node scripts/validate.mjs` | Node 22+ |
 | Syntax check | `node --check` | Bawaan Node |
+| Test terminal | `node scripts/test-terminal.mjs` | Node 22+ |
+| Secret scan | `node scripts/check-secrets.mjs` | Gate tambahan untuk repo publik |
 | Git | Git 2.30+ | Branch/PR |
-| CI | GitHub Actions | Gratis untuk repo publik |
+| CI | GitHub Actions | `validate` + auto-merge owner-only |
 | Deploy | GitHub Pages | Gratis |
 
 ### 4.6 Hosting
@@ -136,6 +139,21 @@ bisa dipakai karena semua path relatif.
 - **Kode:** MIT.
 - **Konten:** CC BY-SA 4.0.
 - **Roadmap:** atribusi ke roadmap.sh; PDF sumber tidak didistribusikan.
+
+### 4.8 Keamanan repository publik
+
+Karena repo bersifat publik dan auto-merge aktif untuk owner:
+
+- `check-secrets.mjs` wajib lulus di CI.
+- Job `validate` hanya punya `contents: read`.
+- Job `automerge` hanya untuk branch repo sendiri dan aktor owner; fork dikecualikan.
+- Tidak memakai `pull_request_target`.
+- Label `no-automerge` tersedia untuk perubahan sensitif.
+- Dependabot memantau update GitHub Actions.
+- Tidak ada secret yang dibutuhkan untuk build/deploy.
+- Branch protection mewajibkan check `validate`.
+
+Detail: [docs/CI.md](./CI.md).
 
 ---
 
@@ -161,17 +179,18 @@ Migrasi harus didahului ADR baru dan rencana PR, bukan dilakukan diam-diam.
 
 ```bash
 # 1. Clone
-git clone git@github.com:<username>/labsiber.git
-cd labsiber
+git clone git@github.com:Andaru0495/Project_belajar_CySec.git
+cd Project_belajar_CySec
 
 # 2. Jalankan lokal (tanpa dependency)
 python3 -m http.server 8000
 # buka http://localhost:8000
 
-# 3. Validasi (butuh Node 20+)
-node --check assets/js/app.js assets/js/terminal.js
+# 3. Validasi (butuh Node 22+)
+while IFS= read -r -d '' file; do node --check "$file"; done < <(git ls-files -z -- '*.js' '*.mjs')
 node scripts/validate.mjs
 node scripts/test-terminal.mjs
+node scripts/check-secrets.mjs
 ```
 
 Tidak ada `npm install` untuk menjalankan situs. Tidak ada `node_modules` di repo.

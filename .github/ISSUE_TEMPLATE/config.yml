@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Laporkan kerentanan secara privat
+    url: https://github.com/Andaru0495/Project_belajar_CySec/security/advisories/new
+    about: Jangan buka issue publik untuk masalah keamanan. Gunakan laporan privat ini.

@@ -124,6 +124,9 @@ praktik aman, dan bisa dijalankan sepenuhnya di browser serta lab lokal sendiri.
 | Validator konten | 100% lulus |
 | Offline setelah kunjungan pertama | Semua modul yang sudah dibuka |
 | Broken internal link | 0 |
+| Secret scan | 0 temuan |
+| CI `validate` | 100% hijau sebelum merge |
+| Auto-merge | Hanya untuk PR owner dari branch repo sendiri |
 
 ### 5.3 Metrik pembelajaran (lokal, tanpa tracking)
 
@@ -352,6 +355,8 @@ mengingat istilah.
 | FR-18 | Validator konten | Must | CI gagal jika data tidak valid |
 | FR-19 | Deployment GitHub Pages | Must | URL publik bekerja |
 | FR-20 | Aksesibilitas WCAG 2.1 AA | Must | Fokus, kontras, keyboard, ARIA |
+| FR-21 | CI wajib + auto-merge khusus owner | Must | `validate` hijau; PR fork/pihak lain tidak auto-merge |
+| FR-22 | Secret scan repository publik | Must | 0 temuan sebelum merge |
 
 ---
 
@@ -403,6 +408,7 @@ mengingat istilah.
 | NFR-08 | Hosting | GitHub Pages gratis; path relatif; HTTPS |
 | NFR-09 | Legal | Lisensi jelas; atribusi roadmap; safety disclaimer |
 | NFR-10 | Ukuran repo | Tanpa binary besar; aset ikon minimal; PDF tidak di-commit |
+| NFR-11 | Keamanan repo publik | Secret scan wajib; token CI least privilege; tanpa `pull_request_target`; Dependabot untuk actions |
 
 ---
 
@@ -436,6 +442,8 @@ Buka situs
 | Ukuran awal terlalu besar | Lambat di mobile | Lazy load konten, tanpa framework, cache |
 | Path GitHub Pages salah | Aset 404 | Semua path relatif, uji di subpath |
 | Scope creep | Tidak selesai | PR plan, out-of-scope, definition of done |
+| Auto-merge memasukkan perubahan yang lulus tes tetapi salah konsep | Kualitas/keamanan turun | Review tetap disarankan; label `no-automerge` untuk perubahan sensitif; validator + branch protection |
+| Secret bocor di repo publik | Kredensial disalahgunakan | Secret scan CI, GitHub secret scanning, review, rotasi |
 | Browser lama | Fitur tidak jalan | Dukungan evergreen; graceful degradation |
 
 ---
@@ -448,7 +456,7 @@ Buka situs
 - Konten tidak membutuhkan backend, database, atau autentikasi.
 - Lab nyata dijalankan pengguna di mesin/VM sendiri.
 - Tidak ada kebutuhan analytics untuk v1.0.
-- Repo final: `github.com/<username>/labsiber` (username diisi PM).
+- Repo final: `github.com/Andaru0495/Project_belajar_CySec`.
 
 ---
 
@@ -456,16 +464,16 @@ Buka situs
 
 | Milestone | Isi | PR terkait | Kriteria keluar |
 | --- | --- | --- | --- |
-| M0 — Fondasi | PRD, TSD, stack, PR plan, template repo | #1 | Dokumen disetujui |
+| M0 — Fondasi | PRD, TSD, stack, PR plan, template repo, CI guardrails, agent roles/tasks | #1, #1b, #1c | Dokumen disetujui; CI hijau; registry role/task valid |
 | M1 — Alpha platform | Shell, roadmap, lesson engine, modul fondasi | #2–#4 | Alur utama bisa dipakai |
 | M2 — Beta konten | 17 modul, terminal, progres, glosarium, pencarian, PWA | #5–#13 | Validator 100%, offline |
-| M3 — Rilis v1.0 | CI, deploy, QA, release notes | #14–#15 | URL publik, checklist QA lulus |
+| M3 — Rilis v1.0 | Deploy, QA, release notes | #14–#15 | URL publik, checklist QA lulus |
 
 ---
 
 ## 15. Pertanyaan terbuka
 
-1. Apakah repo akan memakai nama `labsiber` atau nama lain?
+1. Repo sudah memakai `Project_belajar_CySec`; apakah perlu di-rename menjadi `labsiber` atau nama lain?
 2. Apakah akan memakai custom domain? (Tidak wajib.)
 3. Apakah perlu halaman "Tentang" dan "Kontribusi" di situs, atau cukup README?
 4. Apakah konten akan direview orang lain sebelum rilis?
