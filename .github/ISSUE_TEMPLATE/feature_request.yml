@@ -1,0 +1,67 @@
+name: Feature request
+description: Usulkan fitur atau perbaikan pengalaman belajar.
+title: "[Fitur] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fitur harus sejalan dengan prinsip LabSiber: statis, gratis, privat,
+        aman, dan bisa diakses offline. Baca dulu `docs/PRD.md` bagian
+        non-tujuan sebelum mengusulkan.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Masalah yang ingin diselesaikan
+      description: Jelaskan kebutuhan pengguna, bukan hanya solusi.
+      placeholder: "Saya kesulitan ... ketika ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Usulan solusi
+      description: Bagaimana fitur ini bekerja dari sudut pandang pengguna?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Roadmap
+        - Materi
+        - Kuis
+        - Terminal
+        - Lab
+        - Progres / catatan
+        - Pencarian / glosarium
+        - Aksesibilitas
+        - Performa / offline
+        - Deployment / tooling
+        - Lainnya
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatif yang dipertimbangkan
+      description: Apakah ada cara lain atau fitur serupa?
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Batasan
+      options:
+        - label: Fitur ini tidak membutuhkan server, akun, atau data pribadi.
+          required: false
+        - label: Fitur ini tetap bisa dipakai offline atau punya fallback.
+          required: false
+        - label: Saya bersedia membantu menguji.
+          required: false

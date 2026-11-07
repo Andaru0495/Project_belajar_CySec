@@ -1,0 +1,55 @@
+name: Koreksi konten
+description: Laporkan materi yang kurang akurat, link mati, atau peringatan keamanan yang hilang.
+title: "[Konten] "
+labels: ["content"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bantu jaga kualitas materi. Sertakan sumber tepercaya bila mengoreksi
+        klaim teknis. Jangan menempelkan data pribadi atau kredensial.
+
+  - type: input
+    id: module
+    attributes:
+      label: Modul / halaman
+      description: ID modul atau judul halaman.
+      placeholder: "kriptografi / Keamanan Cloud / roadmap node dns"
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Bagian yang perlu dikoreksi
+      description: Kutip bagian yang bermasalah dan jelaskan mengapa.
+      placeholder: "Pada bagian X tertulis ..., seharusnya ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Usulan perbaikan
+      description: Teks atau langkah yang lebih tepat.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sumber
+      description: Link dokumentasi resmi, standar, atau referensi tepercaya.
+      placeholder: "https://..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Konfirmasi
+      options:
+        - label: Ini bukan laporan kerentanan pada sistem nyata.
+          required: true
+        - label: Saya tidak menyertakan data pribadi atau kredensial.
+          required: true
