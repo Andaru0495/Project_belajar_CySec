@@ -781,15 +781,15 @@ Jika `color-mix` tidak didukung, sediakan fallback warna.
 | --- | --- | --- |
 | Dokumen produk/teknis | Ada (dokumen ini) | #1 |
 | `index.html`, CSS | Ada di working tree | #2 |
-| `app.js` | Belum ada | #2–#6 |
-| `terminal.js` | Ada di working tree | #5 |
+| `app.js` | Belum ada | #2–#4, #11–#13 |
+| `terminal.js` | Ada di working tree | #11 |
 | `roadmap.js` | Ada di working tree | #3 |
 | `module-index.js` | Belum ada | #3 |
-| 17 modul konten | Ada di working tree | #7–#10 |
-| `manifest`, `sw.js`, ikon | Belum ada | #11 |
-| Validator & test | Belum ada | #3, #5 |
-| CI & deploy | Belum ada | #12 |
-| README final & release notes | Sebagian | #1, #13 |
+| 17 modul konten | Ada di working tree | #4–#10 |
+| `manifest`, `sw.js`, ikon | Belum ada | #13 |
+| Validator & test | Belum ada | #3, #11 |
+| CI & deploy | Belum ada | #3, #14 |
+| README final & release notes | Sebagian | #1, #15 |
 
 **Catatan:** working tree saat ini berisi prototipe yang belum di-commit. PR plan
 memecahnya menjadi potongan yang dapat direview. Tidak ada kode yang dianggap final

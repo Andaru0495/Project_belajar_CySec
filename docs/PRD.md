@@ -145,9 +145,9 @@ laporan pengguna:
 - App shell, routing, tema, navigasi, pencarian dasar.
 - Halaman dashboard, roadmap, katalog modul.
 - Lesson engine: blok materi, TOC, kuis, istilah, catatan.
+- Konten awal: modul fondasi & hardware.
 - Terminal simulator + integrasi misi.
 - Progres lokal + ekspor/impor + glosarium.
-- Konten awal: modul fondasi & jaringan.
 
 **Definisi selesai:** pengguna bisa membuka roadmap, membaca modul, menjawab kuis,
 menyelesaikan misi terminal, dan melihat progres.
@@ -457,9 +457,9 @@ Buka situs
 | Milestone | Isi | PR terkait | Kriteria keluar |
 | --- | --- | --- | --- |
 | M0 — Fondasi | PRD, TSD, stack, PR plan, template repo | #1 | Dokumen disetujui |
-| M1 — Alpha platform | Shell, roadmap, lesson, terminal, progres | #2–#6 | Alur utama bisa dipakai |
-| M2 — Beta konten | 17 modul, glosarium, pencarian, PWA | #7–#11 | Validator 100%, offline |
-| M3 — Rilis v1.0 | CI, deploy, QA, release notes | #12–#13 | URL publik, checklist QA lulus |
+| M1 — Alpha platform | Shell, roadmap, lesson engine, modul fondasi | #2–#4 | Alur utama bisa dipakai |
+| M2 — Beta konten | 17 modul, terminal, progres, glosarium, pencarian, PWA | #5–#13 | Validator 100%, offline |
+| M3 — Rilis v1.0 | CI, deploy, QA, release notes | #14–#15 | URL publik, checklist QA lulus |
 
 ---
 

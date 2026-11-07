@@ -673,7 +673,7 @@ ke PR sesuai tabel di atas.
 | `content/modules/06-blue-team.js` | #9 | 2 modul |
 | `content/modules/07-cloud-prog-karier.js` | #10 | 3 modul |
 | `docs/*` | #1 | Baru |
-| `assets/js/app.js` | #2–#4, #11–#12 | **Belum ada** |
+| `assets/js/app.js` | #2–#4, #11–#13 | **Belum ada** |
 | `content/module-index.js` | #3 | **Belum ada** |
 | `scripts/validate.mjs` | #3 | **Belum ada** |
 | `scripts/test-terminal.mjs` | #11 | **Belum ada** |
