@@ -98,11 +98,18 @@ flowchart TD
 │   │   └── style.css
 │   ├── js/
 │   │   ├── app.js
+│   │   ├── state.js
 │   │   └── terminal.js
 │   └── icons/
 │       ├── favicon.svg
 │       ├── icon-192.png
 │       └── icon-512.png
+├── agents/
+│   ├── README.md
+│   ├── roles.mjs
+│   └── tasks/
+│       ├── index.mjs
+│       └── *.mjs
 ├── content/
 │   ├── roadmap.js
 │   ├── module-index.js
@@ -120,11 +127,14 @@ flowchart TD
 │   ├── STACK.md
 │   ├── PR_PLAN.md
 │   ├── CI.md
+│   ├── AGENT_OPERATING_MODEL.md
+│   ├── AGENT_ROLES.md
 │   └── adr/
 ├── scripts/
 │   ├── validate.mjs
 │   ├── test-terminal.mjs
-│   └── check-secrets.mjs
+│   ├── check-secrets.mjs
+│   └── agents.mjs
 ├── SECURITY.md
 └── .github/
     ├── PULL_REQUEST_TEMPLATE.md
@@ -672,13 +682,20 @@ Exit code non-zero jika ada error; dipakai di CI.
 - Tidak mencetak nilai secret ke log; hanya lokasi dan jenis temuan.
 - Bukan pengganti GitHub secret scanning, tetapi menjadi gate tambahan.
 
-### 15.4 Pemeriksaan statis
+### 15.4 `scripts/agents.mjs check`
+
+- Memvalidasi registry role/task: ID unik, role/reviewer dikenal, dependency ada,
+  tidak ada siklus, field acceptance/verification/handoff terisi.
+- Menolak task `done` tanpa PR atau dengan dependency belum selesai.
+- Dijalankan di CI agar aturan role menjadi gate, bukan sekadar dokumen.
+
+### 15.5 Pemeriksaan statis
 
 - `node --check` untuk semua file `.js`/`.mjs` yang tracked.
 - Tidak ada `console.log` debug yang tertinggal.
 - Tidak ada secret (lihat `check-secrets.mjs`).
 
-### 15.5 QA manual
+### 15.6 QA manual
 
 | Area | Uji |
 | --- | --- |
@@ -813,16 +830,18 @@ Jika `color-mix` tidak didukung, sediakan fallback warna.
 
 | Area | Status | PR |
 | --- | --- | --- |
-| Dokumen produk/teknis | Ada (dokumen ini) | #1 |
+| Dokumen produk/teknis | Ada | #1 |
 | `index.html`, CSS | Ada di working tree | #2 |
 | `app.js` | Belum ada | #2–#4, #11–#13 |
+| `state.js` | Belum ada | #4 |
 | `terminal.js` | Ada di working tree | #11 |
 | `roadmap.js` | Ada di working tree | #3 |
 | `module-index.js` | Belum ada | #3 |
 | 17 modul konten | Ada di working tree | #4–#10 |
 | `manifest`, `sw.js`, ikon | Belum ada | #13 |
-| Validator, test terminal, secret scan | Ada | #1 |
-| CI validation + auto-merge | Ada | #1 |
+| Validator, test terminal, secret scan | Ada | #1b |
+| CI validation + auto-merge | Ada | #1b |
+| Role/task registry + agent CLI | Ada | #1c |
 | Deploy GitHub Pages | Belum ada | #14 |
 | README final & release notes | Sebagian | #1, #15 |
 

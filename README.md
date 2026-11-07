@@ -34,6 +34,8 @@ privat, dan bisa di-host di GitHub Pages.
 | [Stack](docs/STACK.md) | Keputusan teknologi, termasuk kenapa bukan Rust |
 | [PR Plan](docs/PR_PLAN.md) | Checklist pemisahan kerja dan rencana PR |
 | [CI & Auto-merge](docs/CI.md) | Apa yang divalidasi, kapan PR otomatis merge, setup branch protection |
+| [Agent Operating Model](docs/AGENT_OPERATING_MODEL.md) | Siklus task, kontrak brief, handoff, review gate |
+| [Agent Roles](docs/AGENT_ROLES.md) | Aturan, batas, dan quality bar tiap role coding agent |
 | [Security Policy](SECURITY.md) | Cara melaporkan kerentanan secara privat |
 | [ADR](docs/adr/) | Keputusan arsitektur (statis, konten, progres, hosting, terminal) |
 
@@ -77,6 +79,7 @@ while IFS= read -r -d '' file; do node --check "$file"; done < <(git ls-files -z
 node scripts/validate.mjs
 node scripts/test-terminal.mjs
 node scripts/check-secrets.mjs
+node scripts/agents.mjs check
 ```
 
 Validator memeriksa:
@@ -100,14 +103,39 @@ di [docs/CI.md](docs/CI.md).
 index.html                 shell
 assets/css/style.css       design system
 assets/js/app.js           router + view
+assets/js/state.js         progress schema + selectors
 assets/js/terminal.js      shell simulator
 content/roadmap.js         202 node roadmap
 content/module-index.js    metadata 17 modul
 content/modules/*.js       materi, kuis, terminal, lab
-docs/                      PRD, TSD, stack, PR plan, ADR
-scripts/                   validator + test
+agents/                    role registry + task handlers
+docs/                      PRD, TSD, stack, PR plan, agent model, ADR
+scripts/                   validator + test + agent CLI
 .github/                   template PR/issue + workflow
 ```
+
+---
+
+## Agent roles & tasks
+
+Pekerjaan dipecah menjadi task mandiri dengan **satu owner role**, reviewer,
+dependency, file scope, acceptance, dan handoff.
+
+```bash
+node scripts/agents.mjs roles
+node scripts/agents.mjs board
+node scripts/agents.mjs task T-006
+node scripts/agents.mjs next --role frontend
+node scripts/agents.mjs check
+```
+
+- Aturan tiap role: [docs/AGENT_ROLES.md](docs/AGENT_ROLES.md)
+- Siklus task & handoff: [docs/AGENT_OPERATING_MODEL.md](docs/AGENT_OPERATING_MODEL.md)
+- Registry: [`agents/`](agents/)
+
+Setiap coding agent wajib membaca brief task + role charter sebelum mengubah file.
+`node scripts/agents.mjs check` dijalankan di CI untuk menolak task tanpa owner,
+dependency hilang, siklus, atau field acceptance yang kosong.
 
 ---
 

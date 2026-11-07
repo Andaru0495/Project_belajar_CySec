@@ -48,6 +48,9 @@ jobs:
       - name: Scan for secrets
         run: node scripts/check-secrets.mjs
 
+      - name: Validate agent role/task registry
+        run: node scripts/agents.mjs check
+
   automerge:
     name: automerge
     needs: validate

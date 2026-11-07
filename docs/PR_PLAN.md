@@ -92,6 +92,7 @@ ci: validate content and deploy to GitHub Pages
 - [ ] **Progres & pencarian** — halaman progres, ekspor/impor, glosarium, Ctrl+K.
 - [ ] **PWA** — manifest, service worker, ikon, offline.
 - [ ] **CI & auto-merge** — validasi, secret scan, owner-only merge, branch protection.
+- [ ] **Agent operating model** — role charter, task mandiri, handler CLI, dependency graph.
 - [ ] **Deploy** — GitHub Pages, workflow, smoke test.
 - [ ] **Rilis** — QA, changelog, tag, release notes.
 
@@ -116,6 +117,12 @@ ci: validate content and deploy to GitHub Pages
 | `SECURITY.md` | #1b | Kebijakan pelaporan kerentanan |
 | `docs/CI.md` | #1b | Setup CI, branch protection, auto-merge |
 | `.github/dependabot.yml` | #1b | Update GitHub Actions |
+| `docs/AGENT_OPERATING_MODEL.md` | #1c | Siklus task, handoff, review gate |
+| `docs/AGENT_ROLES.md` | #1c | Charter 10 role |
+| `agents/roles.mjs` | #1c | Registry role |
+| `agents/tasks/*.mjs` | #1c | 24 task mandiri |
+| `agents/README.md` | #1c | Cara pakai registry |
+| `scripts/agents.mjs` | #1c | CLI handler + validator |
 | `index.html` | #2 | Shell awal |
 | `assets/css/style.css` | #2 | Design system |
 | `assets/js/app.js` | #2–#4, #11–#13 | Router + view, tumbuh per PR |
@@ -226,11 +233,49 @@ secret scan, dan auto-merge khusus owner.
 
 ---
 
+### PR #1c — `docs/agent-operating-model`
+
+**Branch:** `docs/agent-operating-model`  
+**Ukuran:** L (dokumen + registry + CLI)  
+**Dependensi:** #1b
+
+**Tujuan:** Membagi pekerjaan menjadi role dan task mandiri, dengan aturan,
+batas, acceptance, verification, dan handoff yang bisa dimuat coding agent.
+
+**Scope**
+
+- `docs/AGENT_OPERATING_MODEL.md`
+- `docs/AGENT_ROLES.md`
+- `agents/README.md`, `agents/roles.mjs`, `agents/tasks/*.mjs`
+- `scripts/agents.mjs`
+- Update `.github/workflows/ci.yml`, README, TSD, PR plan
+
+**Acceptance**
+
+- [ ] 10 role punya mission, owns, doesNotOwn, rules, checks, handoff, charter.
+- [ ] 24 task punya owner, reviewer, dependency, files, acceptance, verification, out-of-scope.
+- [ ] Tidak ada dependency cycle atau task `done` tanpa PR.
+- [ ] `node scripts/agents.mjs check` lulus.
+- [ ] `node scripts/agents.mjs task <ID>` menampilkan brief + aturan role.
+- [ ] CI menjalankan `agents check`.
+
+**Verifikasi**
+
+```bash
+node scripts/agents.mjs check
+node scripts/agents.mjs board
+node scripts/agents.mjs task T-006
+node scripts/agents.mjs next --role frontend
+node scripts/agents.mjs graph
+```
+
+---
+
 ### PR #2 — `feat/app-shell`
 
 **Branch:** `feat/app-shell`  
 **Ukuran:** M  
-**Dependensi:** #1b
+**Dependensi:** #1c
 
 **Tujuan:** Situs bisa dibuka tanpa error, dengan layout, navigasi, tema, dan
 placeholder view. Belum ada konten.
@@ -278,7 +323,7 @@ placeholder view. Belum ada konten.
 - `content/roadmap.js` — 202 node, 12 bagian.
 - `content/module-index.js` — 17 metadata, `file`, `status` (`planned`/`ready`).
 - `assets/js/app.js` — view roadmap + katalog, filter, pencarian lokal, selector progres.
-- `scripts/validate.mjs` — perluas validator dari PR #1 untuk roadmap/index.
+- `scripts/validate.mjs` — perluas validator dari PR #1b untuk roadmap/index.
 
 **Acceptance**
 
@@ -515,7 +560,7 @@ placeholder view. Belum ada konten.
 - `assets/js/app.js` — halaman terminal bebas, mount terminal di lesson, simpan
   status misi.
 - `assets/css/style.css` — style terminal jika belum ada.
-- `scripts/test-terminal.mjs` — perluas test dari PR #1 untuk seluruh perintah
+- `scripts/test-terminal.mjs` — perluas test dari PR #1b untuk seluruh perintah
   dan misi baru.
 
 **Acceptance**
@@ -686,7 +731,7 @@ semua konten agar misi terminal dari semua modul bisa diuji sekaligus.
 
 | Fase | PR | Checkpoint |
 | --- | --- | --- |
-| **Fase 0 — Fondasi** | #1, #1b | Dokumen disetujui; CI hijau; auto-merge owner aktif |
+| **Fase 0 — Fondasi** | #1, #1b, #1c | Dokumen disetujui; CI hijau; registry role/task valid; auto-merge owner aktif |
 | **Fase 1 — Kerangka** | #2–#3 | Situs terbuka; roadmap & katalog tampil |
 | **Fase 2 — Belajar** | #4 | Modul fondasi bisa dibaca + kuis + catatan |
 | **Fase 3 — Konten** | #5–#10 | 17 modul siap; validator strict |
@@ -718,8 +763,10 @@ ke PR sesuai tabel di atas.
 | `content/modules/05-serangan.js` | #8 | 2 modul |
 | `content/modules/06-blue-team.js` | #9 | 2 modul |
 | `content/modules/07-cloud-prog-karier.js` | #10 | 3 modul |
-| `docs/*`, `SECURITY.md` | #1, #1b | Docs + CI policy |
+| `docs/*`, `SECURITY.md` | #1, #1b, #1c | Docs + CI policy + agent model |
+| `agents/`, `scripts/agents.mjs` | #1c | Role/task registry + CLI |
 | `assets/js/app.js` | #2–#4, #11–#13 | **Belum ada** |
+| `assets/js/state.js` | #4 | **Belum ada** |
 | `content/module-index.js` | #3 | **Belum ada** |
 | `scripts/validate.mjs` | #1b | Ada |
 | `scripts/test-terminal.mjs` | #1b | Ada |
@@ -822,8 +869,8 @@ git switch -c feat/app-shell
 
 ## 11. Release checklist v1.0
 
-- [ ] Semua PR #1, #1b, dan #2–#15 merged.
-- [ ] `validate` + `test-terminal` + `check-secrets` hijau di `main`.
+- [ ] Semua PR #1, #1b, #1c, dan #2–#15 merged.
+- [ ] `validate` + `test-terminal` + `check-secrets` + `agents check` hijau di `main`.
 - [ ] Secret scan 0 temuan.
 - [ ] Branch protection `main` aktif; auto-merge hanya owner.
 - [ ] 17 modul `ready`; 202 node tampil.

@@ -21,6 +21,7 @@ node --check <setiap file .js/.mjs yang tracked>
 node scripts/validate.mjs      # skema konten, quiz, regex misi, link lokal
 node scripts/test-terminal.mjs # perilaku shell + pola misi
 node scripts/check-secrets.mjs # token/kunci yang tidak sengaja ter-commit
+node scripts/agents.mjs check  # role/task registry, dependency, siklus
 ```
 
 Jika salah satu gagal, PR tidak boleh merge.

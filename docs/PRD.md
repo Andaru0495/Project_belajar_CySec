@@ -464,7 +464,7 @@ Buka situs
 
 | Milestone | Isi | PR terkait | Kriteria keluar |
 | --- | --- | --- | --- |
-| M0 — Fondasi | PRD, TSD, stack, PR plan, template repo, CI guardrails | #1, #1b | Dokumen disetujui; CI hijau |
+| M0 — Fondasi | PRD, TSD, stack, PR plan, template repo, CI guardrails, agent roles/tasks | #1, #1b, #1c | Dokumen disetujui; CI hijau; registry role/task valid |
 | M1 — Alpha platform | Shell, roadmap, lesson engine, modul fondasi | #2–#4 | Alur utama bisa dipakai |
 | M2 — Beta konten | 17 modul, terminal, progres, glosarium, pencarian, PWA | #5–#13 | Validator 100%, offline |
 | M3 — Rilis v1.0 | Deploy, QA, release notes | #14–#15 | URL publik, checklist QA lulus |
