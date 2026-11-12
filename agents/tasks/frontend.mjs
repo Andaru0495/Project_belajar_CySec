@@ -328,11 +328,11 @@ export default [
     title: 'Add PWA manifest, service worker, and offline support',
     role: 'frontend',
     reviewers: ['devops', 'security', 'qa'],
-    status: 'todo',
+    status: 'in-progress',
     priority: 'P1',
     size: 'M',
     pr: '#13',
-    dependsOn: ['T-018', 'T-010'],
+    dependsOn: ['T-018'],
     files: [
       'manifest.webmanifest',
       'sw.js',
