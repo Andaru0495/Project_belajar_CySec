@@ -47,7 +47,7 @@ export default [
     title: 'Write networking and protocol modules',
     role: 'content',
     reviewers: ['data-platform', 'qa', 'security'],
-    status: 'todo',
+    status: 'done',
     priority: 'P0',
     size: 'L',
     pr: '#5',
