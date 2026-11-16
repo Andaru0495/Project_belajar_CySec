@@ -38,6 +38,7 @@ privat, dan bisa di-host di GitHub Pages.
 | [PWA & Offline](docs/PWA.md) | Manifest, service worker, cache, uji offline |
 | [Agent Operating Model](docs/AGENT_OPERATING_MODEL.md) | Siklus task, kontrak brief, handoff, review gate |
 | [Agent Roles](docs/AGENT_ROLES.md) | Aturan, batas, dan quality bar tiap role coding agent |
+| [Assignments](docs/ASSIGNMENTS.md) | Siapa mengerjakan task berikutnya |
 | [Security Policy](SECURITY.md) | Cara melaporkan kerentanan secara privat |
 | [ADR](docs/adr/) | Keputusan arsitektur (statis, konten, progres, hosting, terminal) |
 
