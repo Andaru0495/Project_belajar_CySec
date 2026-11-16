@@ -372,7 +372,7 @@ export default [
     title: 'Extend virtual terminal with network commands',
     role: 'frontend',
     reviewers: ['security', 'qa'],
-    status: 'in-progress',
+    status: 'done',
     priority: 'P0',
     size: 'M',
     pr: '#17',

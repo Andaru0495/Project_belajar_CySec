@@ -39,7 +39,7 @@ window.CYBER_MODULE_INDEX = {
       level: 'Pemula',
       duration: 50,
       summary: 'Semua serangan melewati jaringan. Pahami bagaimana paket bergerak, bagaimana alamat bekerja, dan bagaimana membaca jaringanmu sendiri.',
-      status: 'planned'
+      status: 'ready'
     },
     {
       id: 'protokol',
@@ -50,7 +50,7 @@ window.CYBER_MODULE_INDEX = {
       level: 'Pemula',
       duration: 55,
       summary: 'Membaca bahasa jaringan: port, TCP/UDP, DNS, DHCP, ARP, NAT, dan cara menangkap paket untuk membuktikan apa yang sebenarnya terjadi.',
-      status: 'planned'
+      status: 'ready'
     },
     {
       id: 'linux',
@@ -116,7 +116,7 @@ window.CYBER_MODULE_INDEX = {
       level: 'Menengah',
       duration: 50,
       summary: 'Memasang kontrol di jalur serangan: firewall, IDS/IPS, segmentasi, VPN, keamanan Wi-Fi, dan checklist hardening yang bisa langsung dipakai.',
-      status: 'planned'
+      status: 'ready'
     },
     {
       id: 'websec',
