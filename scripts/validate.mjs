@@ -402,11 +402,53 @@ function checkContent() {
   note(`Content: ${Object.keys(modules).length} modul dimuat, ${nodeCount} node roadmap, ${terminalIds.size} misi terminal.`);
 }
 
+function checkPWA() {
+  const manifestPath = path.join(ROOT, 'manifest.webmanifest');
+  if (!fs.existsSync(manifestPath)) return;
+
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch {
+    fail('manifest.webmanifest: bukan JSON valid');
+    return;
+  }
+
+  for (const field of ['name', 'short_name', 'start_url', 'scope', 'display']) {
+    if (typeof manifest[field] !== 'string' || !manifest[field].trim()) {
+      fail(`manifest.${field}: wajib string tidak kosong`);
+    }
+  }
+
+  if (!Array.isArray(manifest.icons) || manifest.icons.length === 0) {
+    fail('manifest.icons: wajib array tidak kosong');
+  } else {
+    manifest.icons.forEach((icon, index) => {
+      if (typeof icon?.src !== 'string' || !icon.src) {
+        fail(`manifest.icons[${index}].src: wajib string`);
+      } else if (!exists(icon.src)) {
+        fail(`manifest.icons[${index}].src: file tidak ditemukan (${icon.src})`);
+      }
+      if (typeof icon?.sizes !== 'string' || !icon.sizes) fail(`manifest.icons[${index}].sizes: wajib`);
+      if (typeof icon?.type !== 'string' || !icon.type) fail(`manifest.icons[${index}].type: wajib`);
+    });
+  }
+
+  if (exists('sw.js')) {
+    const sw = read('sw.js');
+    if (!sw.includes('self.addEventListener')) fail('sw.js: tidak mendaftarkan event listener');
+    if (!sw.includes('CACHE')) warn('sw.js: tidak tampak memakai cache');
+  }
+
+  note('PWA: manifest dan ikon valid.');
+}
+
 /* --------------------------------------------------------------------------
    Main
    -------------------------------------------------------------------------- */
 
 checkMarkdownLinks();
+checkPWA();
 checkContent();
 
 console.log('LabSiber validation');

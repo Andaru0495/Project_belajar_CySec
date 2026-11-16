@@ -1,0 +1,28 @@
+{
+  "id": "./",
+  "name": "LabSiber — Belajar Cyber Security dari Nol",
+  "short_name": "LabSiber",
+  "description": "Roadmap, materi, kuis, simulator terminal, dan lab lokal cyber security berbahasa Indonesia.",
+  "lang": "id",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070b12",
+  "theme_color": "#070b12",
+  "categories": ["education", "security"],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

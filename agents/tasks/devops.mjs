@@ -63,11 +63,11 @@ export default [
     title: 'Deploy to GitHub Pages with smoke test and rollback',
     role: 'devops',
     reviewers: ['security', 'qa', 'tech-lead'],
-    status: 'todo',
+    status: 'in-progress',
     priority: 'P0',
     size: 'M',
     pr: '#14',
-    dependsOn: ['T-019'],
+    dependsOn: ['T-018'],
     files: [
       '.github/workflows/deploy.yml',
       '.nojekyll',
