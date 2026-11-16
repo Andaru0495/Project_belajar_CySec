@@ -341,10 +341,12 @@ menambah statistik tetapi tidak otomatis menandai modul selesai. Ini mencegah
 | --- | --- | --- |
 | `#/` | Dashboard | state + roadmap + index |
 | `#/roadmap` | Roadmap | roadmap + state |
+| `#/roadmap/:node` | Roadmap dengan node target | roadmap + state |
 | `#/modules` | Katalog modul | module index + state |
 | `#/module/:id` | Lesson | module (lazy) + state |
 | `#/terminal` | Terminal bebas | terminal.js |
-| `#/glossary` | Glosarium | semua modul (lazy semua file) |
+| `#/glossary` | Glosarium | modul ready (lazy) |
+| `#/glossary?q=:istilah` | Glosarium terfilter | modul ready (lazy) |
 | `#/progress` | Progres | state + index |
 
 Query opsional: `?q=`, `?track=`, `?status=`, `?filter=`.
@@ -521,17 +523,21 @@ const result = shell.run("sudo tail -n 20 /var/log/auth.log");
 
 ### 9.2 Pencarian
 
-- Sumber: module index (judul, ringkasan), roadmap nodes (judul, desc), terms.
+- Sumber: module index (judul, ringkasan), roadmap nodes (judul, desc), terms dari modul ready.
+- Semua file modul ready dimuat saat pencarian/glosarium pertama, lalu di-cache.
 - Normalisasi: lowercase, hapus diakritik sederhana.
-- Skor: exact title > prefix > substring.
-- Overlay Ctrl/Cmd+K, `/` saat bukan di input.
-- Navigasi ↑/↓/Enter/Esc; fokus dikembalikan setelah tutup.
+- Skor: exact title > prefix > substring; subjudul menambah skor; maksimal 12 hasil.
+- Shortcut: Ctrl/Cmd+K, `/` saat bukan di input.
+- Navigasi ↑/↓/Enter/Esc; fokus dikembalikan setelah tutup; `.app` diberi `inert` selama overlay terbuka.
+- Hasil menavigasi ke `#/module/:id`, `#/roadmap/:node`, atau `#/glossary?q=...`.
+- Empty state membedakan "ketik untuk mencari", "memuat istilah", dan "tidak ada hasil".
 
 ### 9.3 Glosarium
 
-- Agregasi semua `terms` dari modul yang tersedia.
-- Untuk glosarium, semua file modul dimuat (bisa di-cache).
-- Dikelompokkan berdasarkan huruf awal; pencarian lokal.
+- Agregasi `terms` dari modul ready; dedupe case-insensitive; sumber modul ditampilkan.
+- File modul ready dimuat lazy dengan `Promise.allSettled`; istilah bertambah otomatis saat modul menjadi ready.
+- Dikelompokkan berdasarkan huruf awal (non-huruf masuk `#`); filter lokal dan empty state.
+- 51 istilah dari 5 modul ready saat ini (fondasi, hardware, jaringan, protokol, netsec).
 
 ---
 
