@@ -65,13 +65,14 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Enable auto-merge or merge now
+      - name: Merge and dispatch deploy
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -79,9 +80,14 @@ jobs:
         run: |
           set -euo pipefail
           echo "PR #$PR_NUMBER at $HEAD_SHA"
-          if gh pr merge "$PR_NUMBER" --auto --squash --delete-branch --match-head-commit "$HEAD_SHA"; then
-            echo "Native auto-merge enabled."
-          else
-            echo "Native auto-merge unavailable; merging directly after validation."
-            gh pr merge "$PR_NUMBER" --squash --delete-branch --match-head-commit "$HEAD_SHA"
-          fi
+          for attempt in 1 2 3 4 5; do
+            if gh pr merge "$PR_NUMBER" --squash --delete-branch --match-head-commit "$HEAD_SHA"; then
+              echo "Merged. Dispatching deploy workflow."
+              gh workflow run deploy.yml --ref main || echo "Deploy dispatch failed; run Deploy to GitHub Pages manually."
+              exit 0
+            fi
+            echo "Merge attempt $attempt failed; retrying in 5s..."
+            sleep 5
+          done
+          echo "Could not merge automatically."
+          exit 1

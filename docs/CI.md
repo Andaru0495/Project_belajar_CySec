@@ -12,7 +12,7 @@ Workflow: `.github/workflows/ci.yml`
 | Job | Kapan | Isi |
 | --- | --- | --- |
 | `validate` | Semua PR + push ke `main` | Syntax JS, validasi konten/link, test terminal, secret scan |
-| `automerge` | PR dari branch repo sendiri oleh owner | Mengaktifkan auto-merge atau merge langsung setelah `validate` lulus |
+| `automerge` | PR dari branch repo sendiri oleh owner | Merge langsung setelah `validate` lulus, lalu memicu deploy |
 
 ### `validate` menjalankan
 
@@ -61,12 +61,14 @@ Lakukan lewat PR dan review.
 
 ## 3. Setup GitHub yang diperlukan
 
-### 3.1 Aktifkan auto-merge
+### 3.1 Auto-merge (opsional)
 
-Settings → General → Pull Requests → **Allow auto-merge**.
+Workflow **tidak** memakai native auto-merge. Job `automerge` melakukan merge
+langsung setelah `validate` lulus, lalu memicu deploy. Jadi **Allow auto-merge**
+tidak wajib diaktifkan.
 
-Jika ini tidak aktif, workflow akan mencoba merge langsung setelah validasi
-sebagai fallback.
+Jika ingin memakai native auto-merge, ubah job `automerge` dan pastikan deploy
+tetap terpicu (lihat bagian 5).
 
 ### 3.2 Lindungi branch `main`
 
@@ -91,7 +93,8 @@ Settings → Actions → General → Workflow permissions:
 - Pilih **Read and write permissions** agar job `automerge` bisa melakukan merge.
 - Workflow sendiri membatasi izin:
   - job `validate`: `contents: read` (tidak bisa menulis),
-  - job `automerge`: `contents: write` + `pull-requests: write` saja.
+  - job `automerge`: `contents: write` + `pull-requests: write` + `actions: write`.
+- `actions: write` dibutuhkan untuk `gh workflow run deploy.yml`.
 - Jika memilih read-only, auto-merge tidak bisa bekerja; PR harus di-merge manual.
 - Tidak ada secret yang perlu ditambahkan.
 
@@ -109,31 +112,34 @@ Push branch
   → buka PR
   → CI `validate` berjalan
       ├── gagal → PR tertahan; perbaiki lalu push lagi
-      └── lulus → `automerge` aktif
-                    ├── native auto-merge → GitHub merge (squash)
-                    └── fallback → gh pr merge (squash)
+      └── lulus → `automerge`
+                    → gh pr merge (squash)
+                    → gh workflow run deploy.yml --ref main
   → branch dihapus
   → main diperbarui
+  → deploy berjalan
 ```
 
 ---
 
-## 5. Catatan penting: merge oleh `GITHUB_TOKEN`
+## 5. Merge oleh `GITHUB_TOKEN` dan deploy
 
-Jika merge dilakukan langsung oleh `GITHUB_TOKEN` (fallback), event `push` yang
-dihasilkan **tidak selalu memicu workflow lain** (misalnya deploy). Ini batasan
-GitHub untuk mencegah rekursi.
+Event `push` yang dihasilkan oleh merge memakai `GITHUB_TOKEN` **tidak** memicu
+workflow lain. Karena itu job `automerge` memanggil:
 
-Untuk v1.0:
+```bash
+gh workflow run deploy.yml --ref main
+```
 
-- Utamakan **native auto-merge** (GitHub yang melakukan merge).
-- Saat deploy workflow ditambahkan (PR #14), verifikasi apakah deploy terpicu.
-- Jika tidak, opsi:
-  1. gunakan PAT halus dengan scope minimal sebagai `AUTOMERGE_TOKEN`,
-  2. picu deploy lewat `workflow_run` setelah CI selesai, atau
-  3. jalankan deploy manual.
+`workflow_dispatch` adalah pengecualian yang diizinkan untuk `GITHUB_TOKEN`.
+Syaratnya:
 
-Jangan menambahkan PAT sebelum ada kebutuhan dan review keamanan.
+- job `automerge` punya `actions: write`;
+- `deploy.yml` punya trigger `workflow_dispatch`.
+
+Jika dispatch gagal, jalankan **Actions → Deploy to GitHub Pages → Run workflow**
+secara manual. Alternatif lain adalah PAT halus `AUTOMERGE_TOKEN` dengan scope
+minimal, tetapi jangan menambah PAT tanpa kebutuhan dan review keamanan.
 
 ---
 
@@ -182,4 +188,4 @@ bagian tersebut dengan pesan yang jelas.
 | Auto-merge tidak jalan | Bukan owner, PR dari fork, draft, label `no-automerge` | Cek kondisi di atas |
 | Auto-merge menunggu | Required approvals > 0 | Set approvals 0 atau merge manual |
 | `gh pr merge` gagal | Branch protection / check belum lulus | Cek required checks dan izin |
-| Deploy tidak terpicu setelah merge | Merge oleh `GITHUB_TOKEN` | Lihat bagian 5 |
+| Deploy tidak terpicu setelah merge | Dispatch gagal atau `actions: write` tidak ada | Cek log automerge; jalankan deploy manual |
