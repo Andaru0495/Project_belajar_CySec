@@ -4,6 +4,12 @@
   const view = document.getElementById('view');
   const menuBtn = document.querySelector('.menu-btn');
   const sidebar = document.getElementById('sidebar');
+  const appRoot = document.querySelector('.app');
+  const searchOverlay = document.getElementById('search-overlay');
+  const searchInput = document.getElementById('search-input');
+  const searchResults = document.getElementById('search-results');
+  const searchEmpty = document.getElementById('search-empty');
+  const searchClose = document.querySelector('.search-close');
   const state = window.CyberState;
 
   function escapeHtml(value) {
@@ -40,12 +46,21 @@
 
   function parseRoute() {
     const raw = window.location.hash.replace(/^#\/?/, '');
-    const path = raw.split('?')[0];
-    const parts = path.split('/').filter(Boolean);
+    const [pathPart, queryPart] = raw.split('?');
+    const parts = pathPart.split('/').filter(Boolean);
+    const query = new URLSearchParams(queryPart || '');
+    const decode = (value) => {
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
+    };
 
-    if (parts.length === 0) return { name: 'dashboard' };
-    if (parts[0] === 'module') return { name: 'module', id: parts[1] || '' };
-    return { name: parts[0] };
+    if (parts.length === 0) return { name: 'dashboard', query };
+    if (parts[0] === 'module') return { name: 'module', id: decode(parts[1] || ''), query };
+    if (parts[0] === 'roadmap') return { name: 'roadmap', node: decode(parts[1] || ''), query };
+    return { name: parts[0], query };
   }
 
   function pageHead(eyebrow, title, lede) {
@@ -97,6 +112,66 @@
     if (!meta || meta.status !== 'ready') return null;
     await loadScript(meta.file);
     return (window.CYBER_MODULES || {})[id] || null;
+  }
+
+  function normalizeText(value) {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function slugify(value) {
+    return normalizeText(value)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'istilah';
+  }
+
+  let termsPromise = null;
+  let allTermsCache = [];
+  let searchTermsLoaded = false;
+
+  async function loadAllTerms() {
+    const files = [...new Set(
+      moduleIndex()
+        .filter((module) => module.status === 'ready')
+        .map((module) => module.file)
+        .filter(Boolean)
+    )];
+
+    await Promise.allSettled(files.map((file) => loadScript(file)));
+
+    const seen = new Map();
+    for (const module of Object.values(window.CYBER_MODULES || {})) {
+      if (!Array.isArray(module.terms)) continue;
+      for (const entry of module.terms) {
+        if (!entry || !entry.term) continue;
+        const key = normalizeText(entry.term);
+        if (!key || seen.has(key)) continue;
+        seen.set(key, {
+          term: entry.term,
+          def: entry.def || '',
+          moduleId: module.id,
+          moduleTitle: module.title
+        });
+      }
+    }
+
+    return [...seen.values()].sort((a, b) =>
+      a.term.localeCompare(b.term, 'id', { sensitivity: 'base' })
+    );
+  }
+
+  function allTerms() {
+    if (!termsPromise) {
+      termsPromise = loadAllTerms().then((terms) => {
+        allTermsCache = terms;
+        searchTermsLoaded = true;
+        return terms;
+      });
+    }
+    return termsPromise;
   }
 
   function inline(text) {
@@ -403,7 +478,7 @@
     }
   }
 
-  function renderRoadmap() {
+  function renderRoadmap(route = {}) {
     const data = roadmapData();
     if (!data) {
       return placeholder(
@@ -415,6 +490,7 @@
     }
 
     const modules = Object.fromEntries(moduleIndex().map((module) => [module.id, module]));
+    const targetId = route.node || '';
     const total = data.sections.reduce((sum, section) => sum + section.nodes.length, 0);
     const isDone = (node) => Boolean(
       (node.module && state.isModuleComplete(node.module)) || state.isRoadmapDone(node.id)
@@ -425,6 +501,7 @@
     );
 
     const sections = data.sections.map((section, index) => {
+      const hasTarget = section.nodes.some((node) => node.id === targetId);
       const nodes = section.nodes.map((node) => {
         const module = node.module ? modules[node.module] : null;
         const done = isDone(node);
@@ -433,7 +510,7 @@
           : `<span class="badge badge-dim">${module ? 'modul segera hadir' : 'belum ada modul'}</span>`;
 
         return `
-          <li class="node${done ? ' done' : ''}">
+          <li class="node${done ? ' done' : ''}${node.id === targetId ? ' is-target' : ''}" id="node-${escapeHtml(node.id)}">
             <span class="node-check" aria-hidden="true"></span>
             <div class="node-main">
               <div class="node-title">${escapeHtml(node.title)}</div>
@@ -444,7 +521,7 @@
       }).join('');
 
       return `
-        <details class="roadmap-section"${index === 0 ? ' open' : ''}>
+        <details class="roadmap-section"${index === 0 || hasTarget ? ' open' : ''}>
           <summary class="road-head">
             <span class="road-head-main">
               <h2>${escapeHtml(section.title)}</h2>
@@ -516,6 +593,254 @@
         `${modules.length} modul bertahap. ${ready} siap dibaca, ${modules.length - ready} segera hadir.`
       )}
       <div class="module-grid">${cards}</div>`;
+  }
+
+  function renderGlossary(route) {
+    const initial = route.query?.get('q') || '';
+    return `
+      ${pageHead(
+        'Referensi',
+        'Glosarium',
+        'Istilah teknis dari modul yang sudah tersedia. Tekan Ctrl+K untuk mencari dari halaman mana pun.'
+      )}
+      <div class="glossary-tools">
+        <label class="sr-only" for="glossary-filter">Filter istilah</label>
+        <input id="glossary-filter" class="glossary-filter" type="search" placeholder="Filter istilah…" value="${escapeHtml(initial)}" autocomplete="off" spellcheck="false">
+        <span class="badge badge-dim" data-glossary-count>Memuat…</span>
+      </div>
+      <div class="glossary" data-glossary>
+        <div class="empty"><h2>Memuat istilah…</h2><p>Mengambil istilah dari modul yang tersedia.</p></div>
+      </div>`;
+  }
+
+  function filterTermList(terms, query) {
+    const q = normalizeText(query);
+    if (!q) return terms;
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return terms.filter((term) => {
+      const haystack = normalizeText(`${term.term} ${term.def}`);
+      return tokens.every((token) => haystack.includes(token));
+    });
+  }
+
+  function renderTermGroups(terms) {
+    if (!terms.length) {
+      return `<div class="empty"><h2>Tidak ada istilah yang cocok</h2><p>Coba kata lain atau hapus filter.</p></div>`;
+    }
+
+    const groups = new Map();
+    for (const term of terms) {
+      const first = normalizeText(term.term).charAt(0).toUpperCase();
+      const letter = /[A-Z]/.test(first) ? first : '#';
+      if (!groups.has(letter)) groups.set(letter, []);
+      groups.get(letter).push(term);
+    }
+
+    return [...groups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([letter, items]) => `
+        <section class="glossary-letter" id="letter-${letter === '#' ? 'num' : letter}">
+          <h2>${letter}</h2>
+          <div class="term-grid">
+            ${items.map((term) => `
+              <article class="term-card" id="term-${slugify(term.term)}">
+                <h3>
+                  ${escapeHtml(term.term)}
+                  <a class="term-source" href="#/module/${encodeURIComponent(term.moduleId)}">${escapeHtml(term.moduleTitle)}</a>
+                </h3>
+                <p>${inline(term.def)}</p>
+              </article>`).join('')}
+          </div>
+        </section>`).join('');
+  }
+
+  async function mountGlossary() {
+    const box = view.querySelector('[data-glossary]');
+    if (!box) return;
+    const filter = view.querySelector('#glossary-filter');
+    const count = view.querySelector('[data-glossary-count]');
+
+    let terms = [];
+    try {
+      terms = await allTerms();
+    } catch {
+      box.innerHTML = `<div class="empty"><h2>Istilah belum bisa dimuat</h2><p>Coba muat ulang halaman.</p></div>`;
+      if (count) count.textContent = 'Gagal';
+      return;
+    }
+
+    const update = () => {
+      const query = filter?.value || '';
+      const filtered = filterTermList(terms, query);
+      box.innerHTML = renderTermGroups(filtered);
+      if (count) {
+        count.textContent = query
+          ? `${filtered.length} dari ${terms.length} istilah`
+          : `${terms.length} istilah`;
+      }
+    };
+
+    filter?.addEventListener('input', update);
+    update();
+  }
+
+  let searchOpen = false;
+  let searchActive = -1;
+  let searchLastFocus = null;
+
+  function isTypingTarget(target) {
+    return target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]') !== null;
+  }
+
+  function buildSearchItems() {
+    const items = [];
+    for (const meta of moduleIndex()) {
+      items.push({
+        type: 'Modul',
+        title: meta.title,
+        subtitle: `${meta.track} · ${meta.level}${meta.status === 'ready' ? '' : ' · segera hadir'}`,
+        href: `#/module/${encodeURIComponent(meta.id)}`,
+        haystack: `${meta.title} ${meta.summary} ${meta.track} ${meta.level}`
+      });
+    }
+
+    const data = roadmapData();
+    for (const section of data?.sections || []) {
+      for (const node of section.nodes) {
+        items.push({
+          type: 'Topik',
+          title: node.title,
+          subtitle: section.title,
+          href: `#/roadmap/${encodeURIComponent(node.id)}`,
+          haystack: `${node.title} ${node.desc || ''} ${section.title}`
+        });
+      }
+    }
+
+    if (searchTermsLoaded) {
+      for (const term of allTermsCache) {
+        items.push({
+          type: 'Istilah',
+          title: term.term,
+          subtitle: term.def,
+          href: `#/glossary?q=${encodeURIComponent(term.term)}`,
+          haystack: `${term.term} ${term.def}`
+        });
+      }
+    }
+
+    return items;
+  }
+
+  function searchScore(item, query) {
+    const q = normalizeText(query);
+    if (!q) return 0;
+    const title = normalizeText(item.title);
+    const haystack = normalizeText(`${item.title} ${item.subtitle} ${item.haystack}`);
+    const tokens = q.split(/\s+/).filter(Boolean);
+    if (!tokens.every((token) => haystack.includes(token))) return 0;
+
+    let score = 0;
+    if (title === q) score += 100;
+    else if (title.startsWith(q)) score += 70;
+    else if (title.includes(q)) score += 40;
+    if (normalizeText(item.subtitle).includes(q)) score += 15;
+    if (item.type === 'Modul') score += 5;
+    return score;
+  }
+
+  function setSearchActive(index) {
+    if (!searchInput || !searchResults) return;
+    const options = [...searchResults.querySelectorAll('[role="option"]')];
+    if (!options.length) {
+      searchActive = -1;
+      searchInput.removeAttribute('aria-activedescendant');
+      return;
+    }
+    searchActive = (index + options.length) % options.length;
+    options.forEach((option, i) => {
+      option.setAttribute('aria-selected', String(i === searchActive));
+      option.classList.toggle('active', i === searchActive);
+    });
+    const active = options[searchActive];
+    searchInput.setAttribute('aria-activedescendant', active.id);
+    active.scrollIntoView({ block: 'nearest' });
+  }
+
+  function renderSearchResults() {
+    if (!searchInput || !searchResults || !searchEmpty) return;
+    const query = searchInput.value;
+    const ranked = query
+      ? buildSearchItems()
+        .map((item) => ({ item, score: searchScore(item, query) }))
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score || a.item.title.localeCompare(b.item.title, 'id', { sensitivity: 'base' }))
+        .slice(0, 12)
+        .map((entry) => entry.item)
+      : [];
+
+    searchResults.innerHTML = ranked.map((item, index) => `
+      <li class="search-result" id="search-result-${index}" role="option" aria-selected="${index === 0}" data-href="${escapeHtml(item.href)}">
+        <span class="search-type">${item.type}</span>
+        <span class="search-copy">
+          <strong>${escapeHtml(item.title)}</strong>
+          <small>${escapeHtml(item.subtitle)}</small>
+        </span>
+        <svg class="search-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </li>`).join('');
+
+    const hasResults = ranked.length > 0;
+    searchEmpty.hidden = hasResults;
+    searchEmpty.textContent = query
+      ? (searchTermsLoaded ? `Tidak ada hasil untuk “${query}”. Coba kata lain.` : 'Memuat istilah…')
+      : 'Ketik untuk mencari modul, topik, atau istilah.';
+
+    if (hasResults) {
+      setSearchActive(0);
+    } else {
+      searchActive = -1;
+      searchInput.removeAttribute('aria-activedescendant');
+    }
+  }
+
+  function navigateSearch(href) {
+    if (!href) return;
+    closeSearch(false);
+    if (window.location.hash === href) render();
+    else window.location.hash = href;
+  }
+
+  function openSearch() {
+    if (!searchOverlay || !searchInput) return;
+    searchLastFocus = document.activeElement;
+    searchOpen = true;
+    searchOverlay.hidden = false;
+    appRoot?.setAttribute('inert', '');
+    document.body.classList.add('search-open');
+    searchInput.setAttribute('aria-expanded', 'true');
+    searchInput.value = '';
+    renderSearchResults();
+    searchInput.focus();
+
+    allTerms().then(() => {
+      if (searchOpen) renderSearchResults();
+    }).catch(() => {});
+  }
+
+  function closeSearch(restoreFocus = true) {
+    if (!searchOverlay || !searchOpen) return;
+    searchOpen = false;
+    searchOverlay.hidden = true;
+    appRoot?.removeAttribute('inert');
+    document.body.classList.remove('search-open');
+    searchInput?.setAttribute('aria-expanded', 'false');
+    searchInput?.removeAttribute('aria-activedescendant');
+    if (searchResults) searchResults.innerHTML = '';
+    searchActive = -1;
+    if (restoreFocus && searchLastFocus && typeof searchLastFocus.focus === 'function') {
+      searchLastFocus.focus({ preventScroll: true });
+    }
+    searchLastFocus = null;
   }
 
   function statGrid(stats, readyCount) {
@@ -650,10 +975,10 @@
       };
     },
 
-    roadmap() {
+    roadmap(route) {
       return {
         title: 'Roadmap',
-        html: renderRoadmap()
+        html: renderRoadmap(route)
       };
     },
 
@@ -691,15 +1016,10 @@
       };
     },
 
-    glossary() {
+    glossary(route) {
       return {
         title: 'Glosarium',
-        html: placeholder(
-          'Referensi',
-          'Glosarium',
-          'Istilah akan diagregasi dari semua modul setelah konten tersedia.',
-          'Glosarium belum diisi'
-        )
+        html: renderGlossary(route)
       };
     },
 
@@ -756,14 +1076,26 @@
   }
 
   function setPage(page, route) {
+    closeSearch(false);
     view.innerHTML = page.html;
     document.title = `${page.title} — LabSiber`;
     updateNav(route);
     setSidebar(false);
     mountLessonTerminal();
     mountFreeTerminal();
+    mountGlossary();
     view.focus({ preventScroll: true });
     window.scrollTo(0, 0);
+
+    if (route.name === 'roadmap' && route.node) {
+      const target = document.getElementById(`node-${route.node}`);
+      if (target) {
+        const details = target.closest('details');
+        if (details) details.open = true;
+        target.classList.add('is-target');
+        target.scrollIntoView({ block: 'center' });
+      }
+    }
   }
 
   let renderToken = 0;
@@ -828,6 +1160,12 @@
       case 'toggle-theme':
         toggleTheme();
         break;
+      case 'open-search':
+        openSearch();
+        break;
+      case 'close-search':
+        closeSearch();
+        break;
       case 'toggle-sidebar':
         setSidebar(!document.body.classList.contains('sidebar-open'));
         break;
@@ -871,6 +1209,53 @@
     window.setTimeout(() => { button.textContent = original; }, 1500);
   });
 
+  if (searchOverlay && searchInput && searchResults && searchEmpty) {
+    searchInput.addEventListener('input', renderSearchResults);
+
+    searchOverlay.addEventListener('click', (event) => {
+      if (event.target === searchOverlay) closeSearch();
+    });
+
+    searchResults.addEventListener('click', (event) => {
+      const option = event.target.closest('[data-href]');
+      if (option) navigateSearch(option.dataset.href);
+    });
+
+    searchOverlay.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSearch();
+        return;
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSearchActive(searchActive + 1);
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSearchActive(searchActive - 1);
+        return;
+      }
+      if (event.key === 'Enter') {
+        const option = searchResults.querySelector('[aria-selected="true"]');
+        if (option) {
+          event.preventDefault();
+          navigateSearch(option.dataset.href);
+        }
+        return;
+      }
+      if (event.key === 'Tab') {
+        const focusables = [searchInput, searchClose].filter((element) => element && element.offsetParent !== null);
+        if (!focusables.length) return;
+        event.preventDefault();
+        const current = focusables.indexOf(document.activeElement);
+        const next = (current + (event.shiftKey ? -1 : 1) + focusables.length) % focusables.length;
+        focusables[next].focus();
+      }
+    });
+  }
+
   view.addEventListener('click', (event) => {
     const option = event.target.closest('[data-quiz-option]');
     if (option) {
@@ -912,7 +1297,26 @@
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') setSidebar(false);
+    if ((event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K')) {
+      event.preventDefault();
+      if (searchOpen) closeSearch();
+      else openSearch();
+      return;
+    }
+
+    if (event.key === '/' && !searchOpen && !isTypingTarget(event.target)) {
+      event.preventDefault();
+      openSearch();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      if (searchOpen) {
+        closeSearch();
+        return;
+      }
+      setSidebar(false);
+    }
   });
 
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
