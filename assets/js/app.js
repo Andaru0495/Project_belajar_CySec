@@ -179,6 +179,31 @@
       </section>`;
   }
 
+  function renderTerminal(module) {
+    const terminal = module.terminal;
+    if (!terminal || !Array.isArray(terminal.challenges) || terminal.challenges.length === 0) return '';
+
+    const challenges = terminal.challenges.map((challenge) => {
+      const done = state.isTerminalDone(module.id, challenge.id);
+      return `
+        <li class="challenge${done ? ' done' : ''}" data-challenge="${escapeHtml(challenge.id)}">
+          <span class="c-mark" aria-hidden="true">✓</span>
+          <div class="c-body">
+            <div class="c-task">${inline(challenge.task)}</div>
+            <div class="c-hint">Hint: <code>${escapeHtml(challenge.hint)}</code></div>
+          </div>
+        </li>`;
+    }).join('');
+
+    return `
+      <section class="prose-section" id="terminal">
+        <h2>Terminal lab</h2>
+        <p>${inline(terminal.intro || '')}</p>
+        <div data-terminal="${escapeHtml(module.id)}"></div>
+        <ul class="challenge-list">${challenges}</ul>
+      </section>`;
+  }
+
   function renderLesson(module) {
     const meta = moduleIndex().find((item) => item.id === module.id);
     const ordered = [...moduleIndex()].sort((a, b) => a.order - b.order);
@@ -188,6 +213,7 @@
     const done = state.isModuleComplete(module.id);
     const note = state.getNote(module.id);
     const quiz = renderQuiz(module);
+    const terminalSection = renderTerminal(module);
 
     const sections = module.sections.map((section, index) => `
       <section class="prose-section" id="section-${index + 1}">
@@ -253,6 +279,8 @@
 
             ${quiz}
 
+            ${terminalSection}
+
             <section class="prose-section" id="lab">
               <h2>Lab lokal</h2>
               <div class="lab">
@@ -296,6 +324,7 @@
               <div class="toc-extra">
                 <a href="#terms">Istilah kunci</a>
                 ${module.quiz?.length ? '<a href="#quiz">Kuis</a>' : ''}
+                ${module.terminal?.challenges?.length ? '<a href="#terminal">Terminal</a>' : ''}
                 <a href="#lab">Lab lokal</a>
                 <a href="#notes">Catatan</a>
                 <a href="#resources">Sumber</a>
@@ -638,12 +667,27 @@
     terminal() {
       return {
         title: 'Terminal lab',
-        html: placeholder(
-          'Praktik aman',
-          'Terminal simulasi',
-          'Shell virtual, perintah, dan misi terminal masuk pada PR #11. Tidak ada perintah yang menyentuh sistem nyata.',
-          'Terminal belum aktif'
-        )
+        html: `
+          ${pageHead(
+            'Praktik aman',
+            'Terminal lab',
+            'Shell simulasi untuk berlatih perintah. Semua output dibuat lokal; tidak ada koneksi atau eksekusi nyata.'
+          )}
+          <div data-terminal-free></div>
+          <div class="card">
+            <span class="eyebrow">Cheat sheet</span>
+            <h2 class="card-heading">Perintah yang didukung</h2>
+            <p>Ketik <code>help</code> di terminal. Beberapa perintah dasar:</p>
+            <ul class="terminal-cheats">
+              <li><code>pwd</code>, <code>ls -la</code>, <code>cd /etc</code></li>
+              <li><code>cat README.md</code>, <code>find /home/student -name "*.md"</code></li>
+              <li><code>whoami</code>, <code>id</code>, <code>sudo cat /etc/shadow</code></li>
+              <li><code>uname -a</code>, <code>lscpu</code>, <code>free -h</code>, <code>df -h</code>, <code>ip a</code></li>
+            </ul>
+          </div>
+          <div class="callout danger">
+            <span>Latihan ini hanya simulasi. Jangan gunakan perintah yang sama pada sistem orang lain tanpa izin.</span>
+          </div>`
       };
     },
 
@@ -686,11 +730,38 @@
     });
   }
 
+  function mountLessonTerminal() {
+    const container = view.querySelector('[data-terminal]');
+    if (!container || !window.CyberTerminal) return;
+    const moduleId = container.dataset.terminal;
+    const module = (window.CYBER_MODULES || {})[moduleId];
+    if (!module?.terminal?.challenges) return;
+
+    window.CyberTerminal.mount(container, {
+      title: 'student@labsiber: ~',
+      challenges: module.terminal.challenges,
+      doneIds: state.get().terminal[moduleId] || [],
+      onChallenge: (id) => {
+        state.markTerminalDone(moduleId, id);
+        const item = view.querySelector(`[data-challenge="${id}"]`);
+        if (item) item.classList.add('done');
+      }
+    });
+  }
+
+  function mountFreeTerminal() {
+    const container = view.querySelector('[data-terminal-free]');
+    if (!container || !window.CyberTerminal) return;
+    window.CyberTerminal.mount(container, { title: 'student@labsiber: ~' });
+  }
+
   function setPage(page, route) {
     view.innerHTML = page.html;
     document.title = `${page.title} — LabSiber`;
     updateNav(route);
     setSidebar(false);
+    mountLessonTerminal();
+    mountFreeTerminal();
     view.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }
