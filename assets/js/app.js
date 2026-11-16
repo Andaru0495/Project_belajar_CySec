@@ -667,12 +667,27 @@
     terminal() {
       return {
         title: 'Terminal lab',
-        html: placeholder(
-          'Praktik aman',
-          'Terminal simulasi',
-          'Shell virtual, perintah, dan misi terminal masuk pada PR #11. Tidak ada perintah yang menyentuh sistem nyata.',
-          'Terminal belum aktif'
-        )
+        html: `
+          ${pageHead(
+            'Praktik aman',
+            'Terminal lab',
+            'Shell simulasi untuk berlatih perintah. Semua output dibuat lokal; tidak ada koneksi atau eksekusi nyata.'
+          )}
+          <div data-terminal-free></div>
+          <div class="card">
+            <span class="eyebrow">Cheat sheet</span>
+            <h2 class="card-heading">Perintah yang didukung</h2>
+            <p>Ketik <code>help</code> di terminal. Beberapa perintah dasar:</p>
+            <ul class="terminal-cheats">
+              <li><code>pwd</code>, <code>ls -la</code>, <code>cd /etc</code></li>
+              <li><code>cat README.md</code>, <code>find /home/student -name "*.md"</code></li>
+              <li><code>whoami</code>, <code>id</code>, <code>sudo cat /etc/shadow</code></li>
+              <li><code>uname -a</code>, <code>lscpu</code>, <code>free -h</code>, <code>df -h</code>, <code>ip a</code></li>
+            </ul>
+          </div>
+          <div class="callout danger">
+            <span>Latihan ini hanya simulasi. Jangan gunakan perintah yang sama pada sistem orang lain tanpa izin.</span>
+          </div>`
       };
     },
 
@@ -734,12 +749,19 @@
     });
   }
 
+  function mountFreeTerminal() {
+    const container = view.querySelector('[data-terminal-free]');
+    if (!container || !window.CyberTerminal) return;
+    window.CyberTerminal.mount(container, { title: 'student@labsiber: ~' });
+  }
+
   function setPage(page, route) {
     view.innerHTML = page.html;
     document.title = `${page.title} — LabSiber`;
     updateNav(route);
     setSidebar(false);
     mountLessonTerminal();
+    mountFreeTerminal();
     view.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }
