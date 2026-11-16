@@ -51,7 +51,7 @@ export default [
     priority: 'P0',
     size: 'L',
     pr: '#5',
-    dependsOn: ['T-011'],
+    dependsOn: ['T-011', 'T-026'],
     files: [
       'content/modules/02-jaringan.js',
       'content/module-index.js'

@@ -366,5 +366,48 @@ export default [
       'Cara bump cache didokumentasikan.',
       'Serahkan ke QA untuk uji offline.'
     ]
+  },
+  {
+    id: 'T-026',
+    title: 'Extend virtual terminal with network commands',
+    role: 'frontend',
+    reviewers: ['security', 'qa'],
+    status: 'in-progress',
+    priority: 'P0',
+    size: 'M',
+    pr: '#17',
+    dependsOn: ['T-009'],
+    files: [
+      'assets/js/terminal.js',
+      'scripts/test-terminal.mjs'
+    ],
+    context: 'Modul jaringan/protokol/netsec membutuhkan perintah jaringan sebelum tiga modul itu bisa diaktifkan.',
+    deliverables: [
+      'Perintah ping, traceroute, ip route, ss, dig, nslookup, curl, nmap, ufw, iptables',
+      'Output simulasi untuk target lab 10.10.10.5 dan 192.168.1.1',
+      'Test perintah dan output',
+      'Tidak ada network atau sistem nyata'
+    ],
+    acceptance: [
+      'ping -c 4 8.8.8.8 menampilkan 0% packet loss.',
+      'ip route menampilkan default gateway.',
+      'ss -tulpn menampilkan port listening.',
+      'dig/nslookup example.com mengembalikan A record.',
+      'curl http://10.10.10.5 menampilkan respons HTTP.',
+      'nmap -sV 10.10.10.5 menampilkan port 22/80/3306/8080.',
+      'ufw status dan sudo iptables -L menampilkan aturan.',
+      'Solusi misi jaringan/protokol/netsec tidak menghasilkan command not found.'
+    ],
+    verification: [
+      'node --check assets/js/terminal.js',
+      'node scripts/test-terminal.mjs',
+      'node scripts/agents.mjs check',
+      'node scripts/validate.mjs'
+    ],
+    outOfScope: ['Scan jaringan nyata', 'Hosting target', 'Perintah di luar modul'],
+    handoff: [
+      'Catat perintah baru di help.',
+      'Serahkan ke security/QA untuk review output dan safety.'
+    ]
   }
 ];

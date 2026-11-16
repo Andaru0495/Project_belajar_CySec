@@ -111,6 +111,254 @@
     '    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0'
   ].join('\n');
 
+  /* --------------------------------------------------------------------------
+     Network simulation data.
+     Every response below is static text: the shell never opens a socket,
+     resolves DNS, or runs a real command. Targets are lab-only addresses.
+     -------------------------------------------------------------------------- */
+
+  const IP_ROUTE_MAIN = [
+    'default via 10.0.2.2 dev eth0 proto dhcp src 10.0.2.15 metric 100',
+    '10.0.2.0/24 dev eth0 proto kernel scope link src 10.0.2.15 metric 100',
+    '169.254.0.0/16 dev eth0 scope link metric 1000',
+    '172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown'
+  ].join('\n');
+
+  const IP_ROUTE_LOCAL = [
+    'local 10.0.2.15 dev eth0 proto kernel scope host src 10.0.2.15',
+    'broadcast 10.0.2.255 dev eth0 proto kernel scope link src 10.0.2.15',
+    'local 127.0.0.0/8 dev lo proto kernel scope host src 127.0.0.1',
+    'local 127.0.0.1 dev lo proto kernel scope host src 127.0.0.1',
+    'broadcast 127.255.255.255 dev lo proto kernel scope link src 127.0.0.1',
+    'local 172.17.0.1 dev docker0 proto kernel scope host src 172.17.0.1'
+  ].join('\n');
+
+  const PING_TARGETS = {
+    '127.0.0.1': { address: '127.0.0.1', ttl: 64, times: ['0.041', '0.038', '0.044', '0.039'], rtt: '0.038/0.040/0.044/0.002' },
+    'localhost': { address: '127.0.0.1', ttl: 64, times: ['0.041', '0.038', '0.044', '0.039'], rtt: '0.038/0.040/0.044/0.002' },
+    '10.0.2.2': { address: '10.0.2.2', ttl: 64, times: ['0.298', '0.312', '0.287', '0.301'], rtt: '0.287/0.299/0.312/0.009' },
+    '10.10.10.5': { address: '10.10.10.5', ttl: 64, times: ['0.412', '0.397', '0.425', '0.401'], rtt: '0.397/0.408/0.425/0.011' },
+    '8.8.8.8': { address: '8.8.8.8', ttl: 117, times: ['24.182', '23.874', '24.512', '24.033'], rtt: '23.874/24.150/24.512/0.243' },
+    'example.com': { address: '93.184.216.34', ttl: 53, times: ['88.412', '86.921', '87.336', '87.004'], rtt: '86.921/87.418/88.412/0.610' }
+  };
+
+  const TRACE_TARGETS = {
+    'example.com': {
+      address: '93.184.216.34',
+      hops: [
+        { name: '_gateway (10.0.2.2)', times: ['0.312', '0.298', '0.287'] },
+        { name: '10.20.0.1 (10.20.0.1)', times: ['4.112', '4.052', '3.998'] },
+        { name: '103.10.64.5 (103.10.64.5)', times: ['9.884', '9.712', '9.640'] },
+        { name: '202.93.40.13 (202.93.40.13)', times: ['12.451', '12.388', '12.301'] },
+        { name: '180.131.0.9 (180.131.0.9)', times: ['14.002', '13.912', '13.845'] },
+        { name: null, times: [] },
+        { name: 'example.com (93.184.216.34)', times: ['18.771', '18.690', '18.612'] }
+      ]
+    },
+    '8.8.8.8': {
+      address: '8.8.8.8',
+      hops: [
+        { name: '_gateway (10.0.2.2)', times: ['0.305', '0.291', '0.284'] },
+        { name: '10.20.0.1 (10.20.0.1)', times: ['4.088', '4.041', '3.982'] },
+        { name: '103.10.64.5 (103.10.64.5)', times: ['9.902', '9.744', '9.688'] },
+        { name: '202.93.40.13 (202.93.40.13)', times: ['12.402', '12.351', '12.288'] },
+        { name: '180.131.0.9 (180.131.0.9)', times: ['13.998', '13.887', '13.812'] },
+        { name: null, times: [] },
+        { name: 'dns.google (8.8.8.8)', times: ['19.812', '19.640', '19.588'] }
+      ]
+    },
+    '10.10.10.5': {
+      address: '10.10.10.5',
+      hops: [
+        { name: '_gateway (10.0.2.2)', times: ['0.402', '0.388', '0.371'] },
+        { name: 'target.lab (10.10.10.5)', times: ['1.204', '1.188', '1.162'] }
+      ]
+    },
+    '127.0.0.1': {
+      address: '127.0.0.1',
+      hops: [{ name: 'localhost (127.0.0.1)', times: ['0.031', '0.026', '0.023'] }]
+    },
+    'localhost': {
+      address: '127.0.0.1',
+      hops: [{ name: 'localhost (127.0.0.1)', times: ['0.031', '0.026', '0.023'] }]
+    }
+  };
+
+  const LISTENERS = [
+    { proto: 'tcp', state: 'LISTEN', recv: '0', send: '128', local: '0.0.0.0:22', peer: '0.0.0.0:*', pid: 901, process: 'sshd' },
+    { proto: 'tcp', state: 'LISTEN', recv: '0', send: '128', local: '127.0.0.1:631', peer: '0.0.0.0:*', pid: 1022, process: 'cupsd' },
+    { proto: 'tcp', state: 'LISTEN', recv: '0', send: '80', local: '127.0.0.1:3306', peer: '0.0.0.0:*', pid: 1180, process: 'mysqld' },
+    { proto: 'tcp', state: 'LISTEN', recv: '0', send: '128', local: '0.0.0.0:8080', peer: '0.0.0.0:*', pid: 1337, process: 'python3' },
+    { proto: 'udp', state: 'UNCONN', recv: '0', send: '0', local: '0.0.0.0:68', peer: '0.0.0.0:*', pid: 812, process: 'dhclient' }
+  ];
+
+  const DNS_SERVER = '10.0.2.3';
+  const DNS_WHEN = 'Fri Nov 07 09:20:11 UTC 2025';
+  const DNS_RECORDS = {
+    'example.com': { ttl: '3600', type: 'A', value: '93.184.216.34' },
+    'www.example.com': { ttl: '3600', type: 'A', value: '93.184.216.34' },
+    'target.lab': { ttl: '0', type: 'A', value: '10.10.10.5' },
+    'labsiber': { ttl: '0', type: 'A', value: '127.0.1.1' },
+    'localhost': { ttl: '0', type: 'A', value: '127.0.0.1' }
+  };
+
+  const DVWA_PAGE = [
+    '<!DOCTYPE html>',
+    '<html lang="en-GB">',
+    '<head>',
+    '    <meta charset="UTF-8">',
+    '    <title>Damn Vulnerable Web Application (DVWA) v1.10 :: Login</title>',
+    '    <link rel="stylesheet" href="dvwa/css/login.css">',
+    '</head>',
+    '<body>',
+    '    <div id="container">',
+    '        <h1>Damn Vulnerable Web Application</h1>',
+    '        <p>Login</p>',
+    '        <form action="login.php" method="post">',
+    '            <label for="user">Username</label>',
+    '            <input type="text" name="username" id="user" autocomplete="off">',
+    '            <label for="pass">Password</label>',
+    '            <input type="password" name="password" id="pass" autocomplete="off">',
+    '            <input type="submit" value="Login" name="Login">',
+    '        </form>',
+    '    </div>',
+    '</body>',
+    '</html>'
+  ].join('\n');
+
+  const EXAMPLE_PAGE = [
+    '<!doctype html>',
+    '<html>',
+    '<head>',
+    '    <title>Example Domain</title>',
+    '    <meta charset="utf-8" />',
+    '    <meta name="viewport" content="width=device-width, initial-scale=1" />',
+    '</head>',
+    '<body>',
+    '<div>',
+    '    <h1>Example Domain</h1>',
+    '    <p>This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.</p>',
+    '    <p><a href="https://www.iana.org/domains/example">More information...</a></p>',
+    '</div>',
+    '</body>',
+    '</html>'
+  ].join('\n');
+
+  const LOCAL_PAGE = [
+    '<!DOCTYPE html>',
+    '<html lang="id">',
+    '<head>',
+    '    <meta charset="utf-8">',
+    '    <title>LabSiber local service</title>',
+    '</head>',
+    '<body>',
+    '    <h1>LabSiber local service</h1>',
+    '    <p>Python 3.8 http.server di port 8080.</p>',
+    '</body>',
+    '</html>'
+  ].join('\n');
+
+  const CURL_SITES = {
+    '10.10.10.5': {
+      status: 'HTTP/1.1 200 OK',
+      server: 'Apache/2.4.41 (Ubuntu)',
+      extra: ['X-Powered-By: PHP/7.4.33'],
+      body: DVWA_PAGE
+    },
+    'example.com': {
+      status: 'HTTP/1.1 200 OK',
+      server: 'ECS (dcb/7F83)',
+      extra: [
+        'Accept-Ranges: bytes',
+        'Cache-Control: max-age=604800',
+        'Etag: "3147526947+ident"',
+        'Last-Modified: Thu, 17 Oct 2019 07:18:26 GMT',
+        'Vary: Accept-Encoding'
+      ],
+      body: EXAMPLE_PAGE
+    },
+    'www.example.com': {
+      status: 'HTTP/1.1 200 OK',
+      server: 'ECS (dcb/7F83)',
+      extra: ['Cache-Control: max-age=604800'],
+      body: EXAMPLE_PAGE
+    },
+    '127.0.0.1:8080': {
+      status: 'HTTP/1.0 200 OK',
+      server: 'SimpleHTTP/0.6 Python/3.8.10',
+      extra: [],
+      body: LOCAL_PAGE
+    },
+    'localhost:8080': {
+      status: 'HTTP/1.0 200 OK',
+      server: 'SimpleHTTP/0.6 Python/3.8.10',
+      extra: [],
+      body: LOCAL_PAGE
+    }
+  };
+
+  const NMAP_HEADER = 'Starting Nmap 7.94 ( https://nmap.org ) at 2025-11-07 09:20 UTC';
+
+  const NMAP_TARGETS = {
+    '10.10.10.5': {
+      report: 'Nmap scan report for 10.10.10.5',
+      latency: '0.00042s',
+      ports: [
+        { port: '22/tcp', service: 'ssh', version: 'OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)' },
+        { port: '80/tcp', service: 'http', version: 'Apache httpd 2.4.41 ((Ubuntu))' },
+        { port: '3306/tcp', service: 'mysql', version: 'MySQL 5.7.40' },
+        { port: '8080/tcp', service: 'http-proxy', version: 'Python 3.8.10 http.server' }
+      ]
+    },
+    '192.168.1.1': {
+      report: 'Nmap scan report for 192.168.1.1',
+      latency: '0.0011s',
+      ports: [
+        { port: '53/tcp', service: 'domain', version: 'dnsmasq 2.80' },
+        { port: '80/tcp', service: 'http', version: 'lighttpd 1.4.55' },
+        { port: '443/tcp', service: 'ssl/https', version: 'nginx 1.18.0 (Ubuntu)' }
+      ]
+    },
+    '127.0.0.1': {
+      report: 'Nmap scan report for localhost (127.0.0.1)',
+      latency: '0.000087s',
+      ports: [
+        { port: '22/tcp', service: 'ssh', version: 'OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)' },
+        { port: '631/tcp', service: 'ipp', version: 'CUPS 2.4' },
+        { port: '3306/tcp', service: 'mysql', version: 'MySQL 5.7.40' },
+        { port: '8080/tcp', service: 'http-proxy', version: 'Python 3.8.10 http.server' }
+      ]
+    }
+  };
+
+  const UFW_RULES = [
+    ['22/tcp', 'ALLOW', '192.168.56.0/24'],
+    ['80/tcp', 'ALLOW', 'Anywhere'],
+    ['443/tcp', 'ALLOW', 'Anywhere'],
+    ['8080/tcp', 'DENY', 'Anywhere'],
+    ['3306/tcp', 'DENY', 'Anywhere'],
+    ['80/tcp (v6)', 'ALLOW', 'Anywhere (v6)'],
+    ['443/tcp (v6)', 'ALLOW', 'Anywhere (v6)'],
+    ['8080/tcp (v6)', 'DENY', 'Anywhere (v6)'],
+    ['3306/tcp (v6)', 'DENY', 'Anywhere (v6)']
+  ];
+
+  const IPTABLES_RULES = [
+    'Chain INPUT (policy DROP)',
+    'target     prot opt source               destination',
+    'ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:ssh',
+    'ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:http',
+    'ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:https',
+    'DROP       tcp  --  anywhere             anywhere             tcp dpt:8080',
+    'ACCEPT     all  --  anywhere             anywhere             state RELATED,ESTABLISHED',
+    '',
+    'Chain FORWARD (policy DROP)',
+    'target     prot opt source               destination',
+    '',
+    'Chain OUTPUT (policy ACCEPT)',
+    'target     prot opt source               destination'
+  ].join('\n');
+
   const UNAME = 'Linux labsiber 6.5.0-27-generic #28~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC x86_64 x86_64 x86_64 GNU/Linux';
 
   const HELP = [
@@ -118,10 +366,14 @@
     '',
     '  Navigasi   pwd, ls [-la], cd <dir>, find <path> -name <pola>',
     '  File       cat <file>',
-    '  Sistem     whoami, id, uname -a, lscpu, free -h, df -h, ip a',
+    '  Sistem     whoami, id, uname -a, lscpu, free -h, df -h',
+    '  Jaringan   ip a, ip route, ping -c 4 <host>, traceroute <host>',
+    '             ss -tulpn, netstat -tulpn, dig <domain>, nslookup <domain>',
+    '             curl [-i] <url>, nmap [-sV] <host>',
+    '  Firewall   ufw status, sudo iptables -L',
     '  Lainnya    sudo, history, help, clear',
     '',
-    'Ini shell simulasi. Tidak ada perintah yang menyentuh sistem asli.'
+    'Semua keluaran simulasi: shell tidak menyentuh jaringan atau sistem asli.'
   ].join('\n');
 
   function parentOf(path) {
@@ -179,6 +431,340 @@
       .replace(/\*/g, '.*')
       .replace(/\?/g, '.');
     return new RegExp('^' + safe + '$');
+  }
+
+  /* --------------------------------------------------------------------------
+     Network command formatters. Pure functions: input string in, text out.
+     -------------------------------------------------------------------------- */
+
+  function isIPv4(value) {
+    return /^\d{1,3}(\.\d{1,3}){3}$/.test(value);
+  }
+
+  function ipOutput(plain) {
+    const object = plain[0] || 'a';
+    if (object === 'route' || object === 'r') {
+      return plain.includes('local') ? IP_ROUTE_LOCAL : IP_ROUTE_MAIN;
+    }
+    if (['a', 'addr', 'address', 'l', 'link'].includes(object)) return IP;
+    if (object === 'help') {
+      return 'Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }\nOBJECT := { link | address | route }';
+    }
+    return `Object "${object}" is unknown, try "ip help".`;
+  }
+
+  function pingOutput(args) {
+    let count = 4;
+    let host = '';
+    for (let i = 0; i < args.length; i += 1) {
+      const arg = args[i];
+      if (arg === '-c' || arg === '-i' || arg === '-W') {
+        if (arg === '-c') {
+          const value = parseInt(args[i + 1], 10);
+          if (Number.isInteger(value) && value > 0) count = Math.min(value, 20);
+        }
+        i += 1;
+        continue;
+      }
+      if (arg.startsWith('-')) continue;
+      if (!host) host = arg;
+    }
+    if (!host) return 'ping: usage error: Destination address required';
+
+    const target = PING_TARGETS[host.toLowerCase()];
+    if (!target) {
+      if (!isIPv4(host)) return `ping: ${host}: Name or service not known`;
+      const lines = [`PING ${host} (${host}) 56(84) bytes of data.`];
+      for (let i = 0; i < count; i += 1) {
+        lines.push(`From 10.0.2.15 icmp_seq=${i + 1} Destination Host Unreachable`);
+      }
+      lines.push(
+        '',
+        `--- ${host} ping statistics ---`,
+        `${count} packets transmitted, 0 received, +${count} errors, 100% packet loss, time ${(count - 1) * 1000 + 62}ms`
+      );
+      return lines.join('\n');
+    }
+
+    const lines = [`PING ${host} (${target.address}) 56(84) bytes of data.`];
+    for (let i = 0; i < count; i += 1) {
+      lines.push(
+        `64 bytes from ${target.address}: icmp_seq=${i + 1} ttl=${target.ttl} time=${target.times[i % target.times.length]} ms`
+      );
+    }
+    lines.push(
+      '',
+      `--- ${host} ping statistics ---`,
+      `${count} packets transmitted, ${count} received, 0% packet loss, time ${(count - 1) * 1000 + 5}ms`,
+      `rtt min/avg/max/mdev = ${target.rtt} ms`
+    );
+    return lines.join('\n');
+  }
+
+  function tracerouteOutput(args) {
+    const plain = args.filter((arg) => !arg.startsWith('-'));
+    const host = plain[plain.length - 1];
+    if (!host) return 'traceroute: usage error: missing host';
+
+    const target = TRACE_TARGETS[host.toLowerCase()];
+    if (!target) return `traceroute: ${host}: Name or service not known`;
+
+    const lines = [`traceroute to ${host} (${target.address}), 30 hops max, 60 byte packets`];
+    target.hops.forEach((hop, index) => {
+      const number = String(index + 1).padStart(2, ' ');
+      if (!hop.name) {
+        lines.push(` ${number}  * * *`);
+        return;
+      }
+      lines.push(` ${number}  ${hop.name}  ${hop.times.map((time) => `${time} ms`).join('  ')}`);
+    });
+    return lines.join('\n');
+  }
+
+  function ssOutput(flags) {
+    const withProcess = flags.some((flag) => flag.includes('p'));
+    const row = (netid, state, recv, send, local, peer, process) => [
+      netid.padEnd(5),
+      state.padEnd(6),
+      recv.padStart(6),
+      send.padStart(6),
+      local.padEnd(21),
+      peer.padEnd(18),
+      process
+    ].join(' ').trimEnd();
+
+    const lines = [row('Netid', 'State', 'Recv-Q', 'Send-Q', 'Local Address:Port', 'Peer Address:Port', 'Process')];
+    LISTENERS.forEach((item) => {
+      lines.push(row(
+        item.proto,
+        item.state,
+        item.recv,
+        item.send,
+        item.local,
+        item.peer,
+        withProcess ? `users:(("${item.process}",pid=${item.pid},fd=3))` : ''
+      ));
+    });
+    return lines.join('\n');
+  }
+
+  function netstatOutput() {
+    const row = (proto, recv, send, local, peer, state, proc) => [
+      proto.padEnd(5),
+      recv.padStart(6),
+      send.padStart(6),
+      local.padEnd(23),
+      peer.padEnd(23),
+      state.padEnd(12),
+      proc
+    ].join(' ').trimEnd();
+
+    const lines = [
+      'Active Internet connections (only servers)',
+      row('Proto', 'Recv-Q', 'Send-Q', 'Local Address', 'Foreign Address', 'State', 'PID/Program name')
+    ];
+    LISTENERS.forEach((item) => {
+      lines.push(row(
+        item.proto,
+        item.recv,
+        item.send,
+        item.local,
+        item.peer,
+        item.proto === 'udp' ? '' : item.state,
+        `${item.pid}/${item.process}`
+      ));
+    });
+    return lines.join('\n');
+  }
+
+  function dnsLookup(name) {
+    const key = String(name || '').toLowerCase().replace(/\.$/, '');
+    return { key, record: DNS_RECORDS[key] || null };
+  }
+
+  function digOutput(args) {
+    const name = args.find((arg) => !arg.startsWith('-') && !arg.startsWith('+') && !arg.startsWith('@'));
+    if (!name) return 'dig: usage: dig [@server] <name> [type] [+short]';
+
+    const { key, record } = dnsLookup(name);
+    if (args.includes('+short')) return record ? record.value : '';
+
+    const lines = [
+      `; <<>> DiG 9.18.24-1-Ubuntu <<>> ${key}`,
+      ';; global options: +cmd',
+      ';; Got answer:',
+      `;; ->>HEADER<<- opcode: QUERY, status: ${record ? 'NOERROR' : 'NXDOMAIN'}, id: 43121`,
+      `;; flags: qr rd ra; QUERY: 1, ANSWER: ${record ? 1 : 0}, AUTHORITY: 0, ADDITIONAL: 1`,
+      '',
+      ';; OPT PSEUDOSECTION:',
+      '; EDNS: version: 0, flags:; udp: 65494',
+      ';; QUESTION SECTION:',
+      `;${key}.`.padEnd(24) + 'IN  A',
+      ''
+    ];
+    if (record) {
+      lines.push(
+        ';; ANSWER SECTION:',
+        `${key}.`.padEnd(24) + `${record.ttl}  IN  A  ${record.value}`,
+        ''
+      );
+    }
+    lines.push(
+      ';; Query time: 18 msec',
+      `;; SERVER: ${DNS_SERVER}#53(${DNS_SERVER}) (UDP)`,
+      `;; WHEN: ${DNS_WHEN}`,
+      `;; MSG SIZE  rcvd: ${record ? 56 : 98}`
+    );
+    return lines.join('\n');
+  }
+
+  function nslookupOutput(args) {
+    const name = args.find((arg) => !arg.startsWith('-'));
+    if (!name) return 'nslookup: usage: nslookup <name>';
+
+    const { key, record } = dnsLookup(name);
+    const lines = [`Server:\t\t${DNS_SERVER}`, `Address:\t${DNS_SERVER}#53`, ''];
+    if (!record) {
+      lines.push(`** server can't find ${key}: NXDOMAIN`);
+      return lines.join('\n');
+    }
+    lines.push('Non-authoritative answer:', `Name:\t${key}`, `Address: ${record.value}`);
+    return lines.join('\n');
+  }
+
+  function curlOutput(args) {
+    const showHeaders = args.includes('--include') ||
+      args.some((arg) => arg.startsWith('-') && !arg.startsWith('--') && arg.includes('i'));
+    const headOnly = args.includes('--head') ||
+      args.some((arg) => arg.startsWith('-') && !arg.startsWith('--') && arg.includes('I'));
+
+    let url = '';
+    const withValue = ['-A', '-e', '-H', '-X', '-d', '-u', '-o', '-w', '--data', '--header', '--request', '--user-agent'];
+    for (let i = 0; i < args.length; i += 1) {
+      const arg = args[i];
+      if (withValue.includes(arg)) { i += 1; continue; }
+      if (arg.startsWith('-')) continue;
+      url = arg;
+      break;
+    }
+    if (!url) return "curl: try 'curl --help' or 'curl --manual' for more information";
+
+    const normalized = /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `http://${url}`;
+    const match = /^(https?):\/\/([^/?#]+)([^#]*)$/i.exec(normalized);
+    if (!match) {
+      return `curl: (1) Protocol "${normalized.slice(0, normalized.indexOf(':'))}" not supported`;
+    }
+
+    const host = match[2].toLowerCase();
+    const portMatch = /^([^:]+):(\d+)$/.exec(host);
+    const bareHost = portMatch ? portMatch[1] : host;
+    const port = portMatch ? portMatch[2] : '';
+    const key = port && port !== '80' && port !== '443' ? `${bareHost}:${port}` : bareHost;
+    const site = CURL_SITES[key];
+
+    if (!site) {
+      if (bareHost === '127.0.0.1' || bareHost === 'localhost') {
+        return `curl: (7) Failed to connect to ${bareHost} port ${port || '80'} after 0 ms: Connection refused`;
+      }
+      return `curl: (6) Could not resolve host: ${bareHost}`;
+    }
+
+    const headers = [
+      site.status,
+      'Date: Fri, 07 Nov 2025 09:20:11 GMT',
+      `Server: ${site.server}`,
+      ...site.extra,
+      `Content-Length: ${site.body.length}`,
+      'Content-Type: text/html; charset=UTF-8'
+    ].join('\n');
+
+    if (headOnly) return headers;
+    if (showHeaders) return `${headers}\n\n${site.body}`;
+    return site.body;
+  }
+
+  function nmapOutput(args) {
+    const versionScan = args.some((arg) => arg === '-A' || /^-[a-zA-Z]*V/.test(arg));
+
+    let target = '';
+    for (let i = 0; i < args.length; i += 1) {
+      const arg = args[i];
+      if (['-p', '--top-ports', '-e', '-oN', '-oX'].includes(arg)) { i += 1; continue; }
+      if (arg.startsWith('-')) continue;
+      target = arg;
+    }
+
+    if (!target) {
+      return [
+        NMAP_HEADER,
+        'WARNING: No targets were specified, so 0 hosts scanned.',
+        'Nmap done: 0 IP addresses (0 hosts up) scanned in 0.05 seconds'
+      ].join('\n');
+    }
+
+    const known = NMAP_TARGETS[target.toLowerCase()];
+    if (!known) {
+      if (!isIPv4(target)) {
+        return [
+          NMAP_HEADER,
+          `Failed to resolve "${target}".`,
+          'WARNING: No targets were valid.',
+          'Nmap done: 0 IP addresses (0 hosts up) scanned in 0.05 seconds'
+        ].join('\n');
+      }
+      return [
+        NMAP_HEADER,
+        `Nmap scan report for ${target}`,
+        'Host is down',
+        'Nmap done: 1 IP address (0 hosts up) scanned in 3.04 seconds'
+      ].join('\n');
+    }
+
+    const lines = [
+      NMAP_HEADER,
+      known.report,
+      `Host is up (${known.latency} latency).`,
+      `Not shown: ${1000 - known.ports.length} closed ports`
+    ];
+    if (versionScan) {
+      lines.push(`${'PORT'.padEnd(9)}${'STATE'.padEnd(6)}${'SERVICE'.padEnd(12)}VERSION`);
+      known.ports.forEach((item) => {
+        lines.push(`${item.port.padEnd(9)}${'open'.padEnd(6)}${item.service.padEnd(12)}${item.version}`);
+      });
+      lines.push('', 'Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .');
+    } else {
+      lines.push(`${'PORT'.padEnd(9)}${'STATE'.padEnd(6)}SERVICE`);
+      known.ports.forEach((item) => {
+        lines.push(`${item.port.padEnd(9)}${'open'.padEnd(6)}${item.service}`);
+      });
+    }
+    lines.push(`Nmap done: 1 IP address (1 host up) scanned in ${versionScan ? '8.42' : '3.12'} seconds`);
+    return lines.join('\n');
+  }
+
+  function ufwOutput(args) {
+    if (args.find((arg) => !arg.startsWith('-')) !== 'status') return 'ERROR: Unsupported command';
+
+    const lines = ['Status: active'];
+    if (args.includes('verbose')) {
+      lines.push('Logging: on (low)', 'Default: deny (incoming), allow (outgoing), disabled (routed)', 'New profiles: skip');
+    }
+    const row = (to, action, from) => `${to.padEnd(27)}${action.padEnd(12)}${from}`;
+    lines.push('', row('To', 'Action', 'From'), row('--', '------', '----'));
+    UFW_RULES.forEach((rule) => lines.push(row(rule[0], rule[1], rule[2])));
+    return lines.join('\n');
+  }
+
+  function iptablesOutput(args, elevated) {
+    if (!elevated) {
+      return 'iptables v1.8.7 (legacy): can\'t initialize iptables table "filter": ' +
+        'Permission denied (you must be root)\nPerhaps iptables or your kernel needs to be upgraded.';
+    }
+    const lists = args.some((arg) => ['-L', '--list', '-S', '--list-rules'].includes(arg));
+    if (!lists) {
+      return 'iptables v1.8.7 (legacy): no command specified\nTry \'iptables -h\' or \'iptables --help\' for more information.';
+    }
+    return IPTABLES_RULES;
   }
 
   class VirtualShell {
@@ -323,7 +909,37 @@
           return { output: DF };
 
         case 'ip':
-          return { output: IP };
+          return { output: ipOutput(plain) };
+
+        case 'ping':
+          return { output: pingOutput(args) };
+
+        case 'traceroute':
+          return { output: tracerouteOutput(args) };
+
+        case 'ss':
+          return { output: ssOutput(flags) };
+
+        case 'netstat':
+          return { output: netstatOutput() };
+
+        case 'dig':
+          return { output: digOutput(args) };
+
+        case 'nslookup':
+          return { output: nslookupOutput(args) };
+
+        case 'curl':
+          return { output: curlOutput(args) };
+
+        case 'nmap':
+          return { output: nmapOutput(args) };
+
+        case 'ufw':
+          return { output: ufwOutput(args) };
+
+        case 'iptables':
+          return { output: iptablesOutput(args, elevated) };
 
         default:
           return { output: `bash: ${command}: command not found` };
